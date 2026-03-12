@@ -7,10 +7,15 @@ import {
   Param,
   Delete,
   UsePipes,
+  Res,
+  Query,
+  BadRequestException,
 } from '@nestjs/common';
 import { UsersService } from './users.service';
 import { ZodValidationPipe } from 'src/common/pipes/zod-validation.pipe';
 import { CreateUserDto, CreateUserSchema } from './dto/create-user.dto';
+import { Response } from 'express';
+import { Role } from 'generated/prisma/enums';
 
 @Controller('users')
 export class UsersController {
@@ -18,18 +23,30 @@ export class UsersController {
 
   @Post()
   @UsePipes(new ZodValidationPipe(CreateUserSchema))
-  create(@Body() createUserDto: CreateUserDto) {
-    return this.usersService.create(createUserDto);
+  async create(@Body() createUserDto: CreateUserDto, @Res() res: Response) {
+    return res.status(201).json({
+      message: 'User created successfully',
+      data: await this.usersService.create(createUserDto),
+    });
   }
 
   @Get()
-  findAll() {
-    return this.usersService.findAll();
+  findAll(@Query('role') role?: string, @Query('name') name?: string) {
+    if (role && !Object.values(Role).includes(role as Role)) {
+      throw new BadRequestException({
+        statusCode: 400,
+        message: `Invalid role. Valid values: ${Object.values(Role).join(', ')}`,
+      });
+    }
+    return this.usersService.findAll(role as Role | undefined, name);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.usersService.findOne(+id);
+  async findOne(@Param('id') id: string, @Res() res: Response) {
+    return res.status(200).json({
+      message: 'User found successfully',
+      data: await this.usersService.findOne(id),
+    });
   }
 
   @Patch(':id')
