@@ -33,22 +33,24 @@ export class NursesController {
     return this.nursesService.findAll({
       name,
       specialization,
-      experienceYears: experienceYears ? parseInt(experienceYears, 10) : undefined,
+      experienceYears: experienceYears
+        ? parseInt(experienceYears, 10)
+        : undefined,
     });
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.nursesService.findOne(+id);
+  async findOne(@Param('id') id: string) {
+    return await this.nursesService.findOne(id);
   }
 
   @Patch(':id')
-  update(@Param('id') id: string, @Body() updateNurseDto) {
-    return this.nursesService.update(+id, updateNurseDto);
+  update(@Param('id') id: string, @Body() updateNurseDto: any) {
+    return this.nursesService.update(id, updateNurseDto);
   }
 
   @Delete(':id')
   remove(@Param('id') id: string) {
-    return this.nursesService.remove(+id);
+    return this.nursesService.remove(id);
   }
 }

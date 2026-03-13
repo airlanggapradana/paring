@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { CreateNurseDto } from './dto/create-nurse.dto';
+import { Prisma } from 'generated/prisma';
 
 @Injectable()
 export class NursesService {
@@ -17,6 +18,14 @@ export class NursesService {
     const user = await this.databaseService.user.findUnique({
       where: { id: userId },
     });
+
+    const nurse = await this.databaseService.nurseProfile.findUnique({
+      where: { userId },
+    });
+
+    if (nurse) {
+      throw new ConflictException('Profil perawat untuk user ini sudah ada');
+    }
 
     if (!user) {
       throw new NotFoundException('User tidak ditemukan');
@@ -48,11 +57,15 @@ export class NursesService {
   }
 
   async findAll(
-    filters: { name?: string; specialization?: string; experienceYears?: number } = {},
+    filters: {
+      name?: string;
+      specialization?: string;
+      experienceYears?: number;
+    } = {},
   ) {
     const { name, specialization, experienceYears } = filters;
 
-    const whereClause: any = {};
+    const whereClause: Prisma.NurseProfileWhereInput = {};
 
     if (specialization) {
       whereClause.specialization = {
@@ -96,7 +109,9 @@ export class NursesService {
     });
 
     if (!nurses || nurses.length === 0) {
-      throw new NotFoundException('Tidak ada perawat yang cocok dengan kriteria');
+      throw new NotFoundException(
+        'Tidak ada perawat yang cocok dengan kriteria',
+      );
     }
 
     return nurses.map((nurse) => ({
@@ -112,15 +127,61 @@ export class NursesService {
     }));
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} nurse`;
+  async findOne(id: string) {
+    const nurse = await this.databaseService.nurseProfile.findUnique({
+      where: { id },
+      include: {
+        user: {
+          select: {
+            id: true,
+            fullName: true,
+            email: true,
+            phoneNumber: true,
+          },
+        },
+        appointments: {
+          include: {
+            patient: true,
+          },
+        },
+      },
+    });
+
+    if (!nurse) {
+      throw new NotFoundException(`Perawat dengan ID ${id} tidak ditemukan`);
+    }
+
+    return {
+      id: nurse.id,
+      specialization: nurse.specialization,
+      experienceYears: nurse.experienceYears,
+      rating: nurse.rating,
+      isVerified: nurse.isVerified,
+      userId: nurse.user.id,
+      fullName: nurse.user.fullName,
+      email: nurse.user.email,
+      phoneNumber: nurse.user.phoneNumber,
+      appointments: nurse.appointments.map((appointment) => ({
+        id: appointment.id,
+        serviceType: appointment.serviceType,
+        status: appointment.status,
+        totalPrice: appointment.totalPrice,
+        dueDate: appointment.dueDate,
+        patient: {
+          id: appointment.patient.id,
+          name: appointment.patient.name,
+          dateOfBirth: appointment.patient.dateOfBirth,
+          medicalHistory: appointment.patient.medicalHistory,
+        },
+      })),
+    };
   }
 
-  update(id: number, updateNurseDto) {
+  update(id: string, updateNurseDto: any) {
     return `This action updates a #${id} nurse`;
   }
 
-  remove(id: number) {
+  remove(id: string) {
     return `This action removes a #${id} nurse`;
   }
 }
