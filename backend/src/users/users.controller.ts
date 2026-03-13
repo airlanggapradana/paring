@@ -6,7 +6,6 @@ import {
   Patch,
   Param,
   Delete,
-  UsePipes,
   Res,
   Query,
   BadRequestException,
