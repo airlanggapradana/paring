@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
 import { CreateNurseDto } from './dto/create-nurse.dto';
+import { UpdateNurseDto } from './dto/update-nurse.dto';
 import { Prisma } from 'generated/prisma';
 
 @Injectable()
@@ -177,11 +178,37 @@ export class NursesService {
     };
   }
 
-  update(id: string, updateNurseDto: any) {
-    return `This action updates a #${id} nurse`;
+  async update(id: string, updateNurseDto: UpdateNurseDto) {
+    const nurse = await this.databaseService.nurseProfile.findUnique({
+      where: { id },
+    });
+
+    if (!nurse) {
+      throw new NotFoundException(`Perawat dengan ID ${id} tidak ditemukan`);
+    }
+
+    const { specialization, experienceYears } = updateNurseDto;
+
+    return this.databaseService.nurseProfile.update({
+      where: { id },
+      data: {
+        specialization,
+        experienceYears,
+      },
+    });
   }
 
-  remove(id: string) {
-    return `This action removes a #${id} nurse`;
+  async remove(id: string) {
+    const nurse = await this.databaseService.nurseProfile.findUnique({
+      where: { id },
+    });
+
+    if (!nurse) {
+      throw new NotFoundException(`Perawat dengan ID ${id} tidak ditemukan`);
+    }
+
+    return this.databaseService.nurseProfile.delete({
+      where: { id },
+    });
   }
 }
