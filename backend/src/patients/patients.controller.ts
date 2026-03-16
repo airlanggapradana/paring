@@ -60,10 +60,10 @@ export class PatientsController {
   }
 
   @Patch(':id')
-  @UsePipes(new ZodValidationPipe(updatePatientSchema))
   async update(
     @Param('id') id: string,
-    @Body() updatePatientDto: UpdatePatientDto,
+    @Body(new ZodValidationPipe(updatePatientSchema))
+    updatePatientDto: UpdatePatientDto,
     @Res() res: Response,
   ) {
     return res.status(HttpStatus.OK).json({
