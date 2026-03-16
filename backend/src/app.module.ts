@@ -6,9 +6,10 @@ import { DatabaseModule } from './database/database.module';
 import { NursesModule } from './nurses/nurses.module';
 import { PatientsModule } from './patients/patients.module';
 import { AppointmentsModule } from './appointments/appointments.module';
+import { CarelogModule } from './carelog/carelog.module';
 
 @Module({
-  imports: [UsersModule, DatabaseModule, NursesModule, PatientsModule, AppointmentsModule],
+  imports: [UsersModule, DatabaseModule, NursesModule, PatientsModule, AppointmentsModule, CarelogModule],
   controllers: [AppController],
   providers: [AppService],
 })
