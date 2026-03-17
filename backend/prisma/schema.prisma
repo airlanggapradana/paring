@@ -112,7 +112,8 @@ model Appointment {
   // Properti ini mendefinisikan batas waktu atau tenggat pelaksanaan layanan.
   // Didefinisikan secara eksplisit tanpa tanda tanya (?) agar mandatory (wajib diisi/tidak mungkin kosong) 
   // saat sebuah record pemesanan baru dibuat di sistem.
-  dueDate DateTime
+  dueDate    DateTime
+  totalPrice Float
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt

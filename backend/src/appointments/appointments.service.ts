@@ -9,14 +9,24 @@ import { DatabaseService } from 'src/database/database.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
 import { AppointmentStatus, Prisma } from '../../generated/prisma';
+import { PaymentService } from 'src/payment/payment.service';
 
 @Injectable()
 export class AppointmentsService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  constructor(
+    private readonly databaseService: DatabaseService,
+    private readonly paymentService: PaymentService,
+  ) {}
 
   async create(createAppointmentDto: CreateAppointmentDto) {
-    const { patientId, nurseId, serviceName, serviceType, dueDate } =
-      createAppointmentDto;
+    const {
+      patientId,
+      nurseId,
+      serviceName,
+      serviceType,
+      dueDate,
+      totalPrice,
+    } = createAppointmentDto;
 
     const now = new Date();
     if (dueDate <= now) {
@@ -54,17 +64,45 @@ export class AppointmentsService {
     }
 
     try {
+      // 1. Simpan ke database dulu
       const appointment = await this.databaseService.appointment.create({
         data: {
           patientId,
           nurseId,
           serviceType,
+          totalPrice,
           serviceName,
           dueDate,
+          status: 'PENDING',
         },
       });
 
-      return appointment;
+      // 2. Coba buat transaksi Midtrans
+      try {
+        const paymentResult =
+          await this.paymentService.createMidtransTransaction(appointment.id);
+
+        // Jika sukses, kembalikan appointment berserta token Midtrans
+        return {
+          ...appointment,
+          payment: paymentResult, // Berisi Snap Token dan URL
+        };
+      } catch (paymentError) {
+        // SKENARIO BENCANA TERTANGANI: Midtrans gagal, tapi jadwal sudah tersimpan!
+        // Jangan batalkan jadwalnya (jangan throw 500).
+        // Biarkan frontend tahu bahwa jadwal terbuat, tapi pembayaran harus di-trigger ulang.
+        console.error(
+          `Gagal membuat tagihan Midtrans untuk Appointment ${appointment.id}`,
+          paymentError,
+        );
+
+        return {
+          ...appointment,
+          paymentInitFailed: true,
+          message:
+            'Jadwal berhasil dibuat, namun sistem pembayaran sedang sibuk. Silakan buka menu Tagihan untuk mencoba bayar.',
+        };
+      }
     } catch (error) {
       throw new InternalServerErrorException('Failed to create appointment');
     }

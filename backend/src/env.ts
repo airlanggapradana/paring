@@ -6,10 +6,20 @@ dotenv.config();
 const envSchema = z.object({
   DATABASE_URL: z.url(),
   JWT_SECRET: z.string().min(1),
-  IS_PRODUCTION: z.preprocess(
-    (val) => (typeof val === 'string' ? val.toLowerCase() === 'true' : val),
-    z.boolean(),
-  ).default(false),
+  IS_PRODUCTION: z
+    .preprocess(
+      (val) => (typeof val === 'string' ? val.toLowerCase() === 'true' : val),
+      z.boolean(),
+    )
+    .default(false),
+  MIDTRANS_CLIENT_KEY: z.string().min(1),
+  MIDTRANS_SERVER_KEY: z.string().min(1),
+  MIDTRANS_IS_PRODUCTION: z
+    .preprocess(
+      (val) => (typeof val === 'string' ? val.toLowerCase() === 'true' : val),
+      z.boolean(),
+    )
+    .default(false),
 });
 
 export type Env = z.infer<typeof envSchema>;

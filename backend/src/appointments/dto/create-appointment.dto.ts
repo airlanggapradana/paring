@@ -16,6 +16,9 @@ export const createAppointmentSchema = z.object({
     .default('NON_MEDIS')
     .optional(),
   dueDate: z.coerce.date({ error: 'Invalid due date' }),
+  totalPrice: z
+    .number({ error: 'Invalid total price' })
+    .positive({ error: 'Total price must be positive' }),
 });
 
 export type CreateAppointmentDto = z.infer<typeof createAppointmentSchema>;

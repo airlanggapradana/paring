@@ -9,6 +9,7 @@ import { AppointmentsModule } from './appointments/appointments.module';
 import { CarelogModule } from './carelog/carelog.module';
 import { ActivitylogModule } from './activitylog/activitylog.module';
 import { AuthModule } from './auth/auth.module';
+import { PaymentModule } from './payment/payment.module';
 
 @Module({
   imports: [
@@ -20,6 +21,7 @@ import { AuthModule } from './auth/auth.module';
     CarelogModule,
     ActivitylogModule,
     AuthModule,
+    PaymentModule,
   ],
   controllers: [AppController],
   providers: [AppService],
