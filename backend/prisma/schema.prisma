@@ -64,7 +64,6 @@ model User {
 
   // Relasi: Jika user adalah perawat, dia memiliki profil khusus
   nurseProfile NurseProfile?
-  careLogs     CareLog[]
 }
 
 // Model untuk data lansia yang dirawat
@@ -95,6 +94,7 @@ model NurseProfile {
   isVerified      Boolean @default(false)
 
   appointments Appointment[]
+  careLogs     CareLog[]
 }
 
 // Model transaksi dan penjadwalan layanan
@@ -167,7 +167,7 @@ model CareLog {
   patient   Patient @relation(fields: [patientId], references: [id])
 
   nurseId String
-  nurse   User   @relation(fields: [nurseId], references: [id])
+  nurse   NurseProfile @relation(fields: [nurseId], references: [id])
 
   // Metrik Vital (Opsional / Nullable)
   systolic    Int? // Tekanan darah atas (misal: 120)

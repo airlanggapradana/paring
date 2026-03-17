@@ -8,7 +8,7 @@ import {
 import { DatabaseService } from 'src/database/database.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
-import { AppointmentStatus, Prisma } from '../../generated/prisma';
+import { AppointmentStatus, Prisma } from '../../generated/prisma/client';
 import { PaymentService } from 'src/payment/payment.service';
 
 @Injectable()
@@ -81,6 +81,27 @@ export class AppointmentsService {
       try {
         const paymentResult =
           await this.paymentService.createMidtransTransaction(appointment.id);
+
+        const { snapToken, redirectUrl } = paymentResult;
+
+        const paymentRecord = await this.databaseService.payment.findFirst({
+          where: { appointmentId: appointment.id },
+        });
+
+        if (!paymentRecord) {
+          throw new NotFoundException(
+            `Payment record not found for Appointment ${appointment.id}`,
+          );
+        }
+
+        // 3. Update payment record
+        await this.databaseService.payment.update({
+          where: { id: paymentRecord.id },
+          data: {
+            snapToken,
+            snapRedirectUrl: redirectUrl,
+          },
+        });
 
         // Jika sukses, kembalikan appointment berserta token Midtrans
         return {

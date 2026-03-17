@@ -7,7 +7,7 @@ import {
 import { DatabaseService } from 'src/database/database.service';
 import { CreateNurseDto } from './dto/create-nurse.dto';
 import { UpdateNurseDto } from './dto/update-nurse.dto';
-import { Prisma } from 'generated/prisma';
+import { Prisma } from '../../generated/prisma/client';
 
 @Injectable()
 export class NursesService {

@@ -64,13 +64,17 @@ export class CarelogService {
           appointment: true,
           patient: true,
           nurse: {
-            select: {
-              id: true,
-              fullName: true,
-              email: true,
-              role: true,
+            include: {
+              user: {
+                select: {
+                  id: true,
+                  fullName: true,
+                  email: true,
+                  role: true,
+                },
+              },
             },
-          }, // Hanya mengambil field tertentu dari User (nurse) demi privasi
+          }, // Mengambil detail user melalui NurseProfile
         },
         orderBy: {
           recordedAt: 'desc',
@@ -97,11 +101,15 @@ export class CarelogService {
         appointment: true,
         patient: true,
         nurse: {
-          select: {
-            id: true,
-            fullName: true,
-            email: true,
-            role: true,
+          include: {
+            user: {
+              select: {
+                id: true,
+                fullName: true,
+                email: true,
+                role: true,
+              },
+            },
           },
         },
       },

@@ -22,9 +22,8 @@ export class NursesController {
 
   @Post()
   async create(
+    @Res() res: Response,
     @Body(new ZodValidationPipe(CreateNurseSchema))
-    @Res()
-    res: Response,
     createNurseDto: CreateNurseDto,
   ) {
     const result = await this.nursesService.create(createNurseDto);
@@ -65,8 +64,8 @@ export class NursesController {
 
   @Patch(':id')
   async update(
-    @Param('id') id: string,
     @Res() res: Response,
+    @Param('id') id: string,
     @Body(new ZodValidationPipe(UpdateNurseSchema))
     updateNurseDto: UpdateNurseDto,
   ) {

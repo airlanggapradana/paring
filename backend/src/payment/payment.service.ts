@@ -1,13 +1,13 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
 import { DatabaseService } from 'src/database/database.service';
-import { midtransClient } from 'midtrans-client';
+import { Snap } from 'midtrans-client';
 import { env } from 'src/env';
 
 @Injectable()
 export class PaymentService {
   constructor(private readonly databaseService: DatabaseService) {}
 
-  private snap = new midtransClient.Snap({
+  private snap = new Snap({
     clientKey: env.MIDTRANS_CLIENT_KEY,
     isProduction: env.MIDTRANS_IS_PRODUCTION,
     serverKey: env.MIDTRANS_SERVER_KEY,
@@ -70,6 +70,9 @@ export class PaymentService {
 
     // 5. Hit API Midtrans (menggunakan SDK midtrans-client atau HTTP Request)
     const transaction = await this.snap.createTransaction(midtransPayload);
-    return transaction.token;
+    return {
+      snapToken: transaction.token,
+      redirectUrl: transaction.redirect_url,
+    };
   }
 }

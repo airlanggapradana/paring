@@ -14,7 +14,10 @@ import {
   CreateCarelogDto,
   createCarelogSchema,
 } from './dto/create-carelog.dto';
-import { UpdateCarelogDto, updateCarelogSchema } from './dto/update-carelog.dto';
+import {
+  UpdateCarelogDto,
+  updateCarelogSchema,
+} from './dto/update-carelog.dto';
 import { ZodValidationPipe } from '../common/pipes/zod-validation.pipe';
 import { Response } from 'express';
 
@@ -24,9 +27,9 @@ export class CarelogController {
 
   @Post()
   async create(
+    @Res() res: Response,
     @Body(new ZodValidationPipe(createCarelogSchema))
     createCarelogDto: CreateCarelogDto,
-    @Res() res: Response,
   ) {
     const result = await this.carelogService.create(createCarelogDto);
     return res.status(201).json({
@@ -62,10 +65,10 @@ export class CarelogController {
 
   @Patch(':id')
   async update(
+    @Res() res: Response,
     @Param('id') id: string,
     @Body(new ZodValidationPipe(updateCarelogSchema))
     updateCarelogDto: UpdateCarelogDto,
-    @Res() res: Response,
   ) {
     const result = await this.carelogService.update(id, updateCarelogDto);
     return res.status(200).json({
@@ -75,7 +78,7 @@ export class CarelogController {
   }
 
   @Delete(':id')
-  async remove(@Param('id') id: string, @Res() res: Response) {
+  async remove(@Res() res: Response, @Param('id') id: string) {
     const result = await this.carelogService.remove(id);
     return res.status(200).json({
       message: 'Carelog deleted successfully',
