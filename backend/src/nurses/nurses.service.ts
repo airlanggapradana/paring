@@ -166,7 +166,6 @@ export class NursesService {
         id: appointment.id,
         serviceType: appointment.serviceType,
         status: appointment.status,
-        totalPrice: appointment.totalPrice,
         dueDate: appointment.dueDate,
         patient: {
           id: appointment.patient.id,

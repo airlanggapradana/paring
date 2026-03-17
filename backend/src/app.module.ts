@@ -11,7 +11,16 @@ import { ActivitylogModule } from './activitylog/activitylog.module';
 import { AuthModule } from './auth/auth.module';
 
 @Module({
-  imports: [UsersModule, DatabaseModule, NursesModule, PatientsModule, AppointmentsModule, CarelogModule, ActivitylogModule, AuthModule],
+  imports: [
+    UsersModule,
+    DatabaseModule,
+    NursesModule,
+    PatientsModule,
+    AppointmentsModule,
+    CarelogModule,
+    ActivitylogModule,
+    AuthModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })

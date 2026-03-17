@@ -141,7 +141,6 @@ export class PatientsService {
             serviceType: true,
             status: true,
             dueDate: true,
-            totalPrice: true,
             nurse: {
               select: {
                 id: true,

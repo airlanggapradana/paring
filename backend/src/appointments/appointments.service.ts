@@ -8,21 +8,15 @@ import {
 import { DatabaseService } from 'src/database/database.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
-import { AppointmentStatus, Prisma } from 'generated/prisma';
+import { AppointmentStatus, Prisma } from '../../generated/prisma';
 
 @Injectable()
 export class AppointmentsService {
   constructor(private readonly databaseService: DatabaseService) {}
 
   async create(createAppointmentDto: CreateAppointmentDto) {
-    const {
-      patientId,
-      nurseId,
-      serviceName,
-      serviceType,
-      totalPrice,
-      dueDate,
-    } = createAppointmentDto;
+    const { patientId, nurseId, serviceName, serviceType, dueDate } =
+      createAppointmentDto;
 
     const now = new Date();
     if (dueDate <= now) {
@@ -66,7 +60,6 @@ export class AppointmentsService {
           nurseId,
           serviceType,
           serviceName,
-          totalPrice,
           dueDate,
         },
       });
@@ -133,7 +126,6 @@ export class AppointmentsService {
         status: true,
         serviceType: true,
         dueDate: true,
-        totalPrice: true,
         patient: {
           select: {
             id: true,

@@ -15,7 +15,6 @@ export const createAppointmentSchema = z.object({
     .enum(ServiceName, { error: 'Invalid service name' })
     .default('NON_MEDIS')
     .optional(),
-  totalPrice: z.number().positive({ error: 'Total price must be positive' }),
   dueDate: z.coerce.date({ error: 'Invalid due date' }),
 });
 

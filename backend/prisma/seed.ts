@@ -97,7 +97,6 @@ async function main() {
         serviceName: i % 2 === 0 ? ServiceName.MEDIS : ServiceName.NON_MEDIS,
         status:
           i === 0 ? AppointmentStatus.ONGOING : AppointmentStatus.CONFIRMED,
-        totalPrice: 150000 + i * 50000,
         dueDate: new Date(new Date().getTime() + (i + 1) * 24 * 60 * 60 * 1000), // besok sd 5 hari ke depan
       },
     });

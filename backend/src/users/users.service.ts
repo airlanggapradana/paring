@@ -89,7 +89,6 @@ export class UsersService {
                 id: true,
                 serviceType: true,
                 status: true,
-                totalPrice: true,
                 dueDate: true,
                 createdAt: true,
               },

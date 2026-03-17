@@ -4,12 +4,22 @@
 // Get a free hosted Postgres database in seconds: `npx create-db`
 
 generator client {
-  provider = "prisma-client-js"
+  provider = "prisma-client"
   output   = "../generated/prisma"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+// Tambahkan Enum baru untuk menyelaraskan dengan status webhook Midtrans
+enum PaymentStatus {
+  PENDING
+  SETTLEMENT // Pembayaran berhasil
+  EXPIRE // Waktu bayar habis
+  CANCEL // Dibatalkan pengguna/sistem
+  DENY // Ditolak oleh fraud detection Midtrans
+  REFUND // Dana dikembalikan
 }
 
 // Enum untuk membatasi nilai yang valid pada sistem
@@ -98,7 +108,6 @@ model Appointment {
   serviceType ServiceType
   serviceName ServiceName
   status      AppointmentStatus @default(PENDING)
-  totalPrice  Float
 
   // Properti ini mendefinisikan batas waktu atau tenggat pelaksanaan layanan.
   // Didefinisikan secara eksplisit tanpa tanda tanya (?) agar mandatory (wajib diisi/tidak mungkin kosong) 
@@ -109,6 +118,40 @@ model Appointment {
   updatedAt DateTime @updatedAt
 
   careLogs CareLog[]
+
+  // Relasi ke tabel pembayaran
+  payments Payment[]
+}
+
+// Model baru khusus untuk melacak riwayat pembayaran Midtrans
+model Payment {
+  id String @id @default(uuid())
+
+  // Relasi ke Appointment
+  appointmentId String
+  appointment   Appointment @relation(fields: [appointmentId], references: [id])
+
+  // WAJIB: Ini yang Anda kirimkan sebagai 'order_id' saat hit API Midtrans.
+  // Jangan gunakan appointmentId, gunakan paymentId (atau midtransOrderId ini)
+  midtransOrderId String @unique
+
+  amount Float
+  status PaymentStatus @default(PENDING)
+
+  // Menyimpan cara bayar (misal: "bca_va", "gopay", "credit_card")
+  // Diisi setelah webhook Midtrans masuk
+  paymentMethod String?
+
+  // Opsional namun direkomendasikan jika Anda menggunakan Midtrans Snap
+  // Berguna untuk me-render halaman pembayaran di frontend
+  snapToken       String?
+  snapRedirectUrl String?
+
+  paidAt    DateTime? // Waktu pasti kapan uang masuk
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  @@index([appointmentId])
 }
 
 // Model untuk fitur "Laporan Digital Real-time" dan checklist harian
