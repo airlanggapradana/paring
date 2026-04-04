@@ -8,7 +8,9 @@ import { Radio } from '@/components/ui/Radio';
 import { Textarea } from '@/components/ui/Textarea';
 import { 
   Heart, Mail, Lock, User, Phone, ArrowLeft, 
-  UserCircle, Briefcase, ChevronRight, Check
+  UserCircle, Briefcase, ChevronRight, Check, 
+  UploadCloud, MapPin, Clock, ShieldCheck, FileText,
+  CreditCard, Award
 } from 'lucide-react';
 
 export default function RegisterPage() {
@@ -47,6 +49,12 @@ export default function RegisterPage() {
     }
   };
 
+  const handleFinalSubmit = () => {
+    localStorage.setItem('userRole', 'NURSE');
+    // In a real app, we'd save all nurseData to the backend here
+    window.location.href = '/nurse/dashboard';
+  };
+
   const handleNext = () => setStep(prev => prev + 1);
   const handleBack = () => setStep(prev => prev - 1);
 
@@ -56,6 +64,15 @@ export default function RegisterPage() {
       specializations: prev.specializations.includes(spec)
         ? prev.specializations.filter(s => s !== spec)
         : [...prev.specializations, spec]
+    }));
+  };
+
+  const toggleServiceType = (type: string) => {
+    setNurseData(prev => ({
+      ...prev,
+      serviceTypes: prev.serviceTypes.includes(type)
+        ? prev.serviceTypes.filter(t => t !== type)
+        : [...prev.serviceTypes, type]
     }));
   };
 
@@ -277,11 +294,180 @@ export default function RegisterPage() {
             </div>
           )}
 
-          {/* Placeholder for steps 3-5 */}
-          {step > 2 && (
-            <div className="flex-1 flex flex-col items-center justify-center text-center">
-              <p className="text-slate-400 mb-4 italic">Langkah {step} dalam pengembangan...</p>
-              <Button onClick={handleNext} className="mt-4">Lanjut (Debug)</Button>
+          {step === 3 && (
+            <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="font-serif text-2xl font-bold text-[#1B4332] mb-1">Verifikasi Dokumen</h2>
+              <p className="text-slate-500 text-sm mb-8">Unggah dokumen pendukung untuk memverifikasi keahlian Anda.</p>
+
+              <div className="space-y-4">
+                {[
+                  { id: 'str', label: 'STR (Surat Tanda Registrasi)', icon: <FileText className="text-blue-500" /> },
+                  { id: 'ktp', label: 'KTP (Kartu Tanda Penduduk)', icon: <CreditCard className="text-purple-500" /> },
+                  { id: 'certification', label: 'Ijazah / Sertifikat Pelatihan', icon: <Award className="text-orange-500" /> },
+                ].map((doc) => (
+                  <div key={doc.id} className="bg-white p-4 rounded-3xl border border-slate-100 shadow-sm flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-12 h-12 rounded-2xl bg-slate-50 flex items-center justify-center">
+                        {doc.icon}
+                      </div>
+                      <div>
+                        <p className="text-sm font-bold text-[#1B4332]">{doc.label}</p>
+                        <p className="text-[10px] text-slate-400">Format: PDF, JPG, atau PNG (Maks. 5MB)</p>
+                      </div>
+                    </div>
+                    <button 
+                      type="button"
+                      onClick={() => setNurseData({
+                        ...nurseData, 
+                        documents: { ...nurseData.documents, [doc.id]: !nurseData.documents[doc.id as keyof typeof nurseData.documents] }
+                      })}
+                      className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${nurseData.documents[doc.id as keyof typeof nurseData.documents] ? 'bg-[#37A47C] text-white' : 'bg-[#E2F1EC] text-[#37A47C]'}`}
+                    >
+                      {nurseData.documents[doc.id as keyof typeof nurseData.documents] ? <Check size={20} /> : <UploadCloud size={20} />}
+                    </button>
+                  </div>
+                ))}
+              </div>
+
+              <div className="mt-auto pt-8 pb-8">
+                <Button onClick={handleNext} className="w-full h-14 justify-center text-lg bg-[#37A47C] hover:bg-[#1B4332] rounded-2xl shadow-lg shadow-[#37A47C]/20">
+                  Lanjutkan <ChevronRight size={20} className="ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 4 && (
+            <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="font-serif text-2xl font-bold text-[#1B4332] mb-1">Preferensi Kerja</h2>
+              <p className="text-slate-500 text-sm mb-8">Tentukan bagaimana dan di mana Anda ingin bekerja.</p>
+
+              <div className="space-y-6">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-3 ml-1 uppercase tracking-wider">Jenis Layanan</label>
+                  <div className="grid grid-cols-1 gap-3">
+                    {[
+                      { id: 'visit', label: 'Kunjungan (Harian)', desc: 'Datang untuk durasi tertentu' },
+                      { id: 'live-out', label: 'Menginap (Live-out)', desc: 'Bekerja shift tanpa menginap' },
+                      { id: 'live-in', label: 'Menginap (Live-in)', desc: 'Tinggal bersama pasien' },
+                    ].map((type) => (
+                      <div 
+                        key={type.id}
+                        onClick={() => toggleServiceType(type.id)}
+                        className={`flex items-center p-4 rounded-2xl border-2 transition-all cursor-pointer ${nurseData.serviceTypes.includes(type.id) ? 'border-[#37A47C] bg-[#E2F1EC]/30' : 'border-white bg-white hover:border-slate-200'}`}
+                      >
+                        <div className={`w-5 h-5 rounded-md border-2 flex items-center justify-center mr-3 transition-colors ${nurseData.serviceTypes.includes(type.id) ? 'bg-[#37A47C] border-[#37A47C] text-white' : 'bg-white border-slate-200'}`}>
+                          {nurseData.serviceTypes.includes(type.id) && <Check size={14} strokeWidth={4} />}
+                        </div>
+                        <div>
+                          <p className={`text-sm font-bold ${nurseData.serviceTypes.includes(type.id) ? 'text-[#1B4332]' : 'text-slate-600'}`}>{type.label}</p>
+                          <p className="text-[10px] text-slate-400">{type.desc}</p>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1 uppercase tracking-wider">Ketersediaan Waktu</label>
+                  <Input 
+                    icon={<Clock size={18} />}
+                    placeholder="Contoh: Senin - Jumat, 08:00 - 17:00"
+                    value={nurseData.availability}
+                    onChange={(e) => setNurseData({...nurseData, availability: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 mb-1.5 ml-1 uppercase tracking-wider">Lokasi Jangkauan</label>
+                  <Input 
+                    icon={<MapPin size={18} />}
+                    placeholder="Contoh: Jakarta Selatan, Depok"
+                    value={nurseData.location}
+                    onChange={(e) => setNurseData({...nurseData, location: e.target.value})}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-8 pb-8">
+                <Button onClick={handleNext} className="w-full h-14 justify-center text-lg bg-[#37A47C] hover:bg-[#1B4332] rounded-2xl shadow-lg shadow-[#37A47C]/20">
+                  Lanjutkan <ChevronRight size={20} className="ml-2" />
+                </Button>
+              </div>
+            </div>
+          )}
+
+          {step === 5 && (
+            <div className="flex-1 flex flex-col animate-in fade-in slide-in-from-bottom-4 duration-500">
+              <h2 className="font-serif text-2xl font-bold text-[#1B4332] mb-1">Tinjauan Profil</h2>
+              <p className="text-slate-500 text-sm mb-8">Pastikan semua data sudah benar sebelum mengirimkan.</p>
+
+              <div className="space-y-4 flex-1">
+                <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                  <div>
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Informasi Akun</h3>
+                    <div className="flex flex-col gap-1">
+                      <p className="text-sm font-bold text-[#1B4332]">{formData.name || 'Belum diisi'}</p>
+                      <p className="text-xs text-slate-500">{formData.email}</p>
+                      <p className="text-xs text-slate-500">{formData.phone}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="pt-3 border-t border-slate-50">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Pengalaman & Keahlian</h3>
+                    <div className="flex flex-col gap-2">
+                      <p className="text-xs text-slate-600"><span className="font-bold">{nurseData.experience || '0'} Tahun</span> Pengalaman</p>
+                      <div className="flex flex-wrap gap-1.5">
+                        {nurseData.specializations.map(s => (
+                          <span key={s} className="px-2 py-0.5 bg-[#E2F1EC] text-[#37A47C] text-[10px] font-bold rounded-full">{s}</span>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-50">
+                    <h3 className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-2">Preferensi Layanan</h3>
+                    <div className="flex flex-col gap-2">
+                      <p className="text-xs text-slate-600 font-medium">
+                        {nurseData.serviceTypes.map(t => t.charAt(0).toUpperCase() + t.slice(1)).join(', ') || 'Belum dipilih'}
+                      </p>
+                      <div className="flex items-center gap-2 text-xs text-slate-500">
+                        <MapPin size={14} className="text-[#37A47C]" />
+                        <span>{nurseData.location || 'Semua Area'}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="pt-3 border-t border-slate-50 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <ShieldCheck size={16} className="text-[#37A47C]" />
+                      <span className="text-xs font-bold text-[#1B4332]">Dokumen Terpilih</span>
+                    </div>
+                    <div className="flex -space-x-1">
+                      {Object.values(nurseData.documents).map((doc, i) => doc && (
+                        <div key={i} className="w-5 h-5 rounded-full bg-[#37A47C] border-2 border-white flex items-center justify-center">
+                          <Check size={10} className="text-white" strokeWidth={4} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-[#E2F1EC] p-4 rounded-2xl flex gap-3">
+                  <div className="w-8 h-8 rounded-full bg-[#37A47C] flex-shrink-0 flex items-center justify-center text-white">
+                    <Check size={18} />
+                  </div>
+                  <p className="text-[11px] text-[#1B4332] leading-relaxed">
+                    Dengan menekan tombol di bawah, Anda menyetujui syarat dan ketentuan PARING sebagai mitra perawat.
+                  </p>
+                </div>
+              </div>
+
+              <div className="mt-8 pb-8">
+                <Button onClick={handleFinalSubmit} className="w-full h-14 justify-center text-lg bg-[#37A47C] hover:bg-[#1B4332] rounded-2xl shadow-lg shadow-[#37A47C]/20">
+                  Konfirmasi & Selesai
+                </Button>
+              </div>
             </div>
           )}
         </div>
