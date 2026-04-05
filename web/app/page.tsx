@@ -280,29 +280,61 @@ export default function LandingPage() {
             <div className="grid md:grid-cols-2 lg:grid-cols-4 gap-6">
               {[
                 {
-                  title: "Non-medis",
-                  price: "Mulai Rp 50rb",
-                  desc: "Layanan pendampingan non-medis untuk aktivitas harian, dukungan emosional, dan kebugaran lansia.",
-                  items: ["ADL (Makan, Mandi) - Rp 50rb", "Emotional Support - Rp 100rb", "Physical Activity - Rp 150rb"]
+                  title: "Perawat · Visit",
+                  badge: "Medis",
+                  price: "Rp 100.000 / kunjungan",
+                  desc: "Kunjungan perawat medis ke rumah untuk pengecekan rutin harian. Cocok untuk pemantauan berkala.",
+                  items: [
+                    "Cek Tekanan Darah (TTV)",
+                    "Cek Gula Darah",
+                    "Cek Kolesterol",
+                    "Cek Asam Urat"
+                  ],
+                  note: "*Harga dapat disesuaikan"
                 },
                 {
-                  title: "Visit Care",
-                  price: "Mulai Rp 150rb / kunjungan",
-                  desc: "Perawatan medis berkala ke rumah untuk pengecekan rutin, injeksi, infus, atau perawatan luka.",
-                  items: ["Durasi 1–3 Jam", "Tindakan Medis Spesifik", "Pengecekan Tensi & Gula"]
-                },
-                {
-                  title: "Live-Out Care",
-                  price: "Mulai Rp 200rb / shift",
-                  desc: "Pendampingan lansia selama jam kerja. Cocok bagi keluarga yang bekerja di siang hari.",
-                  items: ["Shift 8–12 Jam", "Pendampingan Aktivitas", "Pemberian Obat Terjadwal"],
+                  title: "Perawat · Live-Out",
+                  badge: "Medis",
+                  price: "Rp 200.000 / shift",
+                  desc: "Pendampingan medis seharian penuh dengan tindakan perawatan. Ideal untuk pasien dengan kebutuhan khusus.",
+                  items: [
+                    "Cek Tekanan Darah (TTV)",
+                    "Cek Gula Darah",
+                    "Cek Kolesterol & Asam Urat",
+                    "ROM & ADL",
+                    "Perawatan Infus Vit C",
+                    "Perawatan Luka Biasa",
+                    "Injeksi Insulin"
+                  ],
+                  note: "*Harga dapat disesuaikan",
                   highlight: true
                 },
                 {
-                  title: "Live-In Care",
-                  price: "Mulai Rp 3.5jt / bulan",
-                  desc: "Pendampingan penuh 24 jam dengan perawat yang tinggal bersama pasien di rumah.",
-                  items: ["Standby 24 Jam", "Perawatan Menyeluruh", "Cocok untuk Bedridden"]
+                  title: "Perawat · Live-In",
+                  badge: "Medis",
+                  price: "Rp 350.000 / hari",
+                  desc: "Perawat tinggal bersama pasien 24 jam. Mencakup semua tindakan medis termasuk luka kompleks.",
+                  items: [
+                    "Cek TTV, Gula, Kolesterol & Asam Urat",
+                    "ROM & ADL",
+                    "Infus Vit C & Injeksi Insulin",
+                    "Perawatan Luka Biasa & Gangren",
+                    "Perawatan Luka Kolostomi & NGT",
+                    "Pasang Kateter"
+                  ],
+                  note: "*Harga dapat disesuaikan"
+                },
+                {
+                  title: "Caregiver",
+                  badge: "Non-Medis",
+                  price: "Mulai Rp 50.000",
+                  desc: "Pendampingan aktivitas harian, kebugaran fisik ringan, dan dukungan emosional untuk lansia.",
+                  items: [
+                    "ADL — Rp 50.000",
+                    "Light Physical Activity — Rp 150.000",
+                    "Emotional Support & Active Listening — Rp 100.000"
+                  ],
+                  note: "*Harga dapat disesuaikan"
                 }
               ].map((service, idx) => (
                 <motion.div
@@ -311,29 +343,40 @@ export default function LandingPage() {
                   whileInView={{ opacity: 1, y: 0 }}
                   viewport={{ once: true }}
                   transition={{ duration: 0.6, delay: idx * 0.1 }}
-                  className={`p-8 rounded-[2rem] border relative overflow-hidden ${service.highlight ? 'bg-[#1B4332] border-transparent text-white shadow-2xl shadow-[#1B4332]/30' : 'bg-white border-[#37A47C]/10 text-slate-800'}`}
+                  className={`p-8 rounded-[2rem] border relative overflow-hidden flex flex-col ${service.highlight ? 'bg-[#1B4332] border-transparent text-white shadow-2xl shadow-[#1B4332]/30' : 'bg-white border-[#37A47C]/10 text-slate-800'}`}
                 >
                   {service.highlight && (
                     <div className="absolute -top-12 -right-12 w-48 h-48 bg-[#37A47C] rounded-full blur-2xl opacity-20"></div>
                   )}
 
-                  <h4 className={`font-serif text-2xl font-bold mb-2 ${service.highlight ? 'text-white' : 'text-[#1B4332]'}`}>{service.title}</h4>
-                  <div className={`text-sm font-bold mb-6 px-3 py-1 inline-block rounded-full ${service.highlight ? 'bg-[#37A47C] text-white' : 'bg-[#E2F1EC] text-[#37A47C]'}`}>
+                  <div className="flex items-start justify-between gap-2 mb-2">
+                    <h4 className={`font-serif text-xl font-bold leading-tight ${service.highlight ? 'text-white' : 'text-[#1B4332]'}`}>{service.title}</h4>
+                    {service.badge && (
+                      <span className={`text-[10px] font-bold tracking-widest uppercase px-2 py-0.5 rounded-full shrink-0 ${service.highlight ? 'bg-white/20 text-white' : 'bg-[#E2F1EC] text-[#37A47C]'}`}>
+                        {service.badge}
+                      </span>
+                    )}
+                  </div>
+                  <div className={`text-sm font-bold mb-5 px-3 py-1 inline-block rounded-full ${service.highlight ? 'bg-[#37A47C] text-white' : 'bg-[#E2F1EC] text-[#37A47C]'}`}>
                     {service.price}
                   </div>
 
-                  <p className={`mb-8 font-light leading-relaxed ${service.highlight ? 'text-slate-300' : 'text-slate-600'}`}>{service.desc}</p>
+                  <p className={`mb-6 font-light leading-relaxed text-sm ${service.highlight ? 'text-slate-300' : 'text-slate-600'}`}>{service.desc}</p>
 
-                  <ul className="space-y-4 mb-8">
+                  <ul className="space-y-3 mb-6 flex-1">
                     {service.items.map((item, i) => (
-                      <li key={i} className="flex items-center gap-3">
-                        <CheckCircle2 size={18} className={service.highlight ? 'text-[#37A47C]' : 'text-[#37A47C]'} />
-                        <span className={`text-sm font-medium ${service.highlight ? 'text-slate-200' : 'text-slate-700'}`}>{item}</span>
+                      <li key={i} className="flex items-start gap-3">
+                        <CheckCircle2 size={16} className="text-[#37A47C] mt-0.5 shrink-0" />
+                        <span className={`text-sm leading-snug ${service.highlight ? 'text-slate-200' : 'text-slate-700'}`}>{item}</span>
                       </li>
                     ))}
                   </ul>
 
-                  <Button onClick={() => setIsBookingModalOpen(true)} className={`w-full justify-center rounded-xl h-12 ${service.highlight ? 'bg-white text-[#1B4332] hover:bg-slate-100 shadow-none' : 'bg-[#FBF9F6] text-[#1B4332] hover:bg-[#E2F1EC] shadow-none border border-slate-200'}`}>
+                  {service.note && (
+                    <p className={`text-xs mb-4 italic ${service.highlight ? 'text-slate-400' : 'text-slate-400'}`}>{service.note}</p>
+                  )}
+
+                  <Button onClick={() => setIsBookingModalOpen(true)} className={`w-full justify-center text-[#1B4332] rounded-xl h-12 `}>
                     Pesan Sekarang
                   </Button>
                 </motion.div>
