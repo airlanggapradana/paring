@@ -191,3 +191,26 @@ export const nurseEarningsAPI = {
   getSummary: () =>
     apiCall("/nurse/earnings"),
 };
+
+// Nurse Availability API calls
+export const availabilityAPI = {
+  getSchedule: () =>
+    apiCall("/nurse/availability"),
+
+  addSlot: (startTime: string, endTime: string) =>
+    apiCall("/nurse/availability", {
+      method: "POST",
+      body: { startTime, endTime },
+    }),
+
+  removeSlot: (slotId: string) =>
+    apiCall(`/nurse/availability/${slotId}`, {
+      method: "DELETE",
+    }),
+
+  updateSchedule: (slots: any[]) =>
+    apiCall("/nurse/availability", {
+      method: "PUT",
+      body: { slots },
+    }),
+};

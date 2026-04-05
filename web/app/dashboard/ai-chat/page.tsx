@@ -2,15 +2,19 @@
 
 import { useState, useRef, useEffect } from 'react';
 import Link from 'next/link';
-import { ArrowLeft, Send, Sparkles, User, Brain, MessageSquare, ShieldAlert, HeartPulse, Zap } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { ArrowLeft, Send, Sparkles, User, Brain, MessageSquare, ShieldAlert, HeartPulse, Zap, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { authAPI } from '@/lib/api-client';
 
 export default function AiChatPage() {
+  const router = useRouter();
   const [msg, setMsg] = useState('');
   const [messages, setMessages] = useState([
     { id: 1, role: 'ai', text: 'Halo! Saya Paring AI. Ada yang bisa saya bantu hari ini terkait layanan perawat atau kondisi kesehatan keluarga Anda?', time: '09:00' }
   ]);
   const [isTyping, setIsTyping] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const suggestions = [
@@ -19,6 +23,25 @@ export default function AiChatPage() {
     { text: 'Bantuan darurat', icon: ShieldAlert },
     { text: 'Tips kesehatan lansia', icon: Brain },
   ];
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        setIsLoading(true);
+        const response = await authAPI.getProfile();
+        if (!response.data) {
+          router.push('/login');
+        }
+      } catch (err) {
+        console.error('Auth check failed:', err);
+        router.push('/login');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    checkAuth();
+  }, [router]);
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -34,7 +57,7 @@ export default function AiChatPage() {
     setMessages(prev => [...prev, newMsg]);
     setMsg('');
     
-    // Mock response
+    // Mock response - can be replaced with actual AI API call
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);
@@ -48,6 +71,17 @@ export default function AiChatPage() {
       setMessages(prev => [...prev, aiMsg]);
     }, 1500);
   };
+
+  if (isLoading) {
+    return (
+      <div className="bg-[#FBF9F6] min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={40} className="animate-spin text-[#37A47C]" />
+          <p className="text-slate-600">Memuat chat...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#F8FAFC] min-h-screen font-sans text-slate-800 flex flex-col h-screen max-w-4xl mx-auto shadow-2xl relative overflow-hidden">
