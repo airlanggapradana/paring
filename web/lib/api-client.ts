@@ -143,3 +143,51 @@ export const patientsAPI = {
       body: data,
     }),
 };
+
+// Sessions API calls
+export const sessionsAPI = {
+  getList: () =>
+    apiCall("/sessions"),
+
+  getDetail: (id: string) =>
+    apiCall(`/sessions/${id}`),
+
+  update: (id: string, data: any) =>
+    apiCall(`/sessions/${id}`, {
+      method: "PATCH",
+      body: data,
+    }),
+};
+
+// Consultations API calls
+export const consultationsAPI = {
+  getList: () =>
+    apiCall("/consultations"),
+
+  getDetail: (id: string) =>
+    apiCall(`/consultations/${id}`),
+
+  sendMessage: (id: string, content: string) =>
+    apiCall(`/consultations/${id}`, {
+      method: "POST",
+      body: { content },
+    }),
+
+  create: (data: any) =>
+    apiCall("/consultations", {
+      method: "POST",
+      body: data,
+    }),
+};
+
+// Analytics API calls
+export const analyticsAPI = {
+  getPatientAnalytics: (patientId: string) =>
+    apiCall(`/analytics/${patientId}`),
+};
+
+// Nurse API calls (additional)
+export const nurseEarningsAPI = {
+  getSummary: () =>
+    apiCall("/nurse/earnings"),
+};
