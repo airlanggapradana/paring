@@ -9,9 +9,7 @@ const registerSchema = z.object({
   password: z.string().min(8, "Password must be at least 8 characters"),
   name: z.string().min(2, "Name must be at least 2 characters"),
   phone: z.string().min(10, "Phone must be at least 10 characters"),
-  role: z.enum(["PATIENT", "NURSE"], {
-    errorMap: () => ({ message: "Role must be PATIENT or NURSE" }),
-  }),
+  role: z.enum(["PATIENT", "NURSE"]),
 });
 
 export async function POST(request: NextRequest) {
@@ -25,7 +23,7 @@ export async function POST(request: NextRequest) {
         {
           success: false,
           message: "Validation failed",
-          errors: validation.error.errors.map((e) => ({
+          errors: validation.error.issues.map((e) => ({
             field: e.path[0],
             message: e.message,
           })),
