@@ -1,19 +1,67 @@
 'use client';
 
-import { useState } from 'react';
-import { Wallet, TrendingUp, Calendar, ArrowUpRight, Download, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Wallet, TrendingUp, Calendar, ArrowUpRight, Download, ChevronRight, CheckCircle2, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { bookingsAPI } from '@/lib/api-client';
 
 export default function NurseEarnings() {
-  const [totalEarnings] = useState('4.250.000');
-  const [pendingPayout] = useState('150.000');
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [totalEarnings, setTotalEarnings] = useState('0');
+  const [pendingPayout, setPendingPayout] = useState('0');
 
-  const transactions = [
-    { id: '1', date: '12 Ags 2026', patient: 'Ibu Kartini', amount: '150.000', status: 'PENDING' },
-    { id: '4', date: '12 Ags 2026', patient: 'Opa Sastro', amount: '200.000', status: 'PENDING' },
-    { id: '2', date: '10 Ags 2026', patient: 'Bapak Bardi', amount: '250.000', status: 'SUCCESS' },
-    { id: '3', date: '08 Ags 2026', patient: 'Ibu Kartini', amount: '150.000', status: 'SUCCESS' }
-  ];
+  useEffect(() => {
+    const fetchEarnings = async () => {
+      try {
+        setIsLoading(true);
+        const response = await bookingsAPI.getList();
+        const data = Array.isArray(response.data) ? response.data : response.data?.bookings || [];
+        
+        // Calculate totals
+        let total = 0;
+        let pending = 0;
+        
+        data.forEach((booking: any) => {
+          const amount = booking.totalPrice || 0;
+          total += amount;
+          if (booking.paymentStatus !== 'completed' && booking.paymentStatus !== 'COMPLETED') {
+            pending += amount;
+          }
+        });
+
+        setBookings(data);
+        setTotalEarnings(total.toLocaleString('id-ID'));
+        setPendingPayout(pending.toLocaleString('id-ID'));
+      } catch (err: any) {
+        console.error('Failed to fetch earnings:', err);
+        setBookings([]);
+        setTotalEarnings('0');
+        setPendingPayout('0');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchEarnings();
+  }, []);
+
+  const transactions = bookings.map((booking: any) => ({
+    id: booking.id,
+    date: booking.scheduledDate ? new Date(booking.scheduledDate).toLocaleDateString('id-ID') : '—',
+    patient: booking.patient?.fullName || 'Pasien',
+    amount: (booking.totalPrice || 0).toLocaleString('id-ID'),
+    status: booking.paymentStatus?.toUpperCase() === 'COMPLETED' ? 'SUCCESS' : 'PENDING'
+  }));
+
+  if (isLoading) {
+    return (
+      <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full min-h-screen flex flex-col items-center justify-center bg-[#FBF9F6]">
+        <Loader2 size={40} className="animate-spin text-[#37A47C] mb-4" />
+        <p className="text-slate-600">Memuat data penghasilan...</p>
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full min-h-screen flex flex-col bg-[#FBF9F6]">
