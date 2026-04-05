@@ -7,29 +7,45 @@ import { Check } from 'lucide-react';
 export interface CheckboxProps {
   label: string;
   checked?: boolean;
-  onChange?: (checked: boolean) => void;
+  onChange?: ((value: boolean) => void) | ((e: React.ChangeEvent<HTMLInputElement>) => void) | ((e: any) => void);
+  name?: string;
+  disabled?: boolean;
 }
 
-export function Checkbox({ label, checked = false, onChange }: CheckboxProps) {
+export function Checkbox({ label, checked = false, onChange, name, disabled }: CheckboxProps) {
   const [internalChecked, setInternalChecked] = useState(checked);
   
   const isChecked = onChange ? checked : internalChecked;
   const handleChange = () => {
+    const newValue = !isChecked;
     if (onChange) {
-      onChange(!isChecked);
+      // Call onChange - it will handle both boolean and event signatures
+      try {
+        (onChange as any)(newValue);
+      } catch (err) {
+        // Fallback - try with event-like object
+        const event = {
+          target: {
+            name,
+            checked: newValue,
+            type: 'checkbox'
+          }
+        } as React.ChangeEvent<HTMLInputElement>;
+        (onChange as any)(event);
+      }
     } else {
-      setInternalChecked(!isChecked);
+      setInternalChecked(newValue);
     }
   };
 
   return (
     <motion.label 
-      whileHover={{ x: 5 }} 
-      className="flex items-center gap-3 cursor-pointer"
-      onClick={handleChange}
+      whileHover={disabled ? {} : { x: 5 }} 
+      className={`flex items-center gap-3 ${disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
+      onClick={disabled ? undefined : handleChange}
     >
       <motion.div 
-        whileTap={{ scale: 0.8 }} 
+        whileTap={disabled ? {} : { scale: 0.8 }} 
         className={
           isChecked 
             ? "w-6 h-6 rounded-md bg-[#37A47C] flex items-center justify-center text-white shadow-sm"

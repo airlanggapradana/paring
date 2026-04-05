@@ -1,8 +1,76 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, MapPin, Calendar, Clock, Receipt, User, History, CheckCircle2, AlertCircle } from 'lucide-react';
+import { ArrowLeft, MapPin, Calendar, Clock, Receipt, User, History, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { bookingsAPI } from '@/lib/api-client';
 
 export default function BookingDetailPage() {
+  const params = useParams();
+  const bookingId = params.id as string;
+  const [bookingData, setBookingData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchBookingData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await bookingsAPI.getDetail(bookingId);
+        setBookingData(response.data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load booking data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (bookingId) {
+      fetchBookingData();
+    }
+  }, [bookingId]);
+
+  if (isLoading) {
+    return (
+      <div className="bg-[#FBF9F6] min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={40} className="animate-spin text-[#37A47C]" />
+          <p className="text-slate-600">Memuat detail booking...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-[#FBF9F6] min-h-screen flex items-center justify-center px-6">
+        <div className="bg-white rounded-2xl p-8 text-center max-w-md shadow-lg border border-red-200">
+          <div className="flex justify-center mb-4">
+            <AlertCircle size={40} className="text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold text-[#1B4332] mb-2">Error</h2>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <Link href="/dashboard/bookings">
+            <Button className="w-full bg-[#37A47C] hover:bg-[#1B4332]">
+              Kembali ke Daftar Booking
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const nurseName = bookingData?.nurse?.user?.name || 'Perawat';
+  const bookingStatus = bookingData?.status || 'pending';
+  const bookingDate = bookingData?.scheduledDate ? new Date(bookingData.scheduledDate).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' }) : '—';
+  const bookingTime = bookingData?.scheduledTime || '—';
+  const serviceName = bookingData?.service?.name || 'Visit Care';
+  const price = bookingData?.totalPrice || 0;
+  const bookingId_display = bookingData?.id ? `#BK-${bookingData.id.substring(0, 8).toUpperCase()}` : '#BK-00000000';
+  const paymentStatus = bookingData?.paymentStatus || 'pending';
+
   return (
     <div className="bg-[#FBF9F6] min-h-screen font-sans text-slate-800 pb-28">
       {/* Header */}
@@ -12,7 +80,7 @@ export default function BookingDetailPage() {
         </Link>
         <div>
           <h1 className="font-serif text-xl font-bold text-[#1B4332]">Detail Booking</h1>
-          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-0.5">#BK-PAR-8092</p>
+          <p className="text-xs text-slate-500 font-bold uppercase tracking-widest mt-0.5">{bookingId_display}</p>
         </div>
       </header>
 

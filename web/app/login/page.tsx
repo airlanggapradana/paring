@@ -22,9 +22,23 @@ export default function LoginPage() {
 
     try {
       const response = await authAPI.login(email, password);
-      const { token } = response.data;
+      const { token, user } = response.data;
       localStorage.setItem('paring_auth_token', token);
-      router.push('/dashboard');
+      
+      // Role-based navigation
+      const role = user?.role || response.data.role;
+      switch (role?.toUpperCase()) {
+        case 'ADMIN':
+          router.push('/admin/dashboard');
+          break;
+        case 'NURSE':
+          router.push('/nurse/dashboard');
+          break;
+        case 'PATIENT':
+        default:
+          router.push('/dashboard');
+          break;
+      }
     } catch (err: any) {
       setError(err.message || 'Login gagal. Silakan coba lagi.');
     } finally {

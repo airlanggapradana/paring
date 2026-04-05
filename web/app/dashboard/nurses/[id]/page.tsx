@@ -1,10 +1,74 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Star, MapPin, Award, CheckCircle2, MessageCircle, CalendarClock } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, Award, CheckCircle2, MessageCircle, CalendarClock, Loader2, AlertCircle } from 'lucide-react';
+import { nursesAPI } from '@/lib/api-client';
 
 export default function NurseProfilePage() {
+  const params = useParams();
+  const nurseId = params.id as string;
+  const [nurseData, setNurseData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState('');
+
+  useEffect(() => {
+    const fetchNurseData = async () => {
+      try {
+        setIsLoading(true);
+        const response = await nursesAPI.getDetail(nurseId);
+        setNurseData(response.data);
+      } catch (err: any) {
+        setError(err.message || 'Failed to load nurse data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (nurseId) {
+      fetchNurseData();
+    }
+  }, [nurseId]);
+
+  if (isLoading) {
+    return (
+      <div className="bg-[#FBF9F6] min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={40} className="animate-spin text-[#37A47C]" />
+          <p className="text-slate-600">Memuat data perawat...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-[#FBF9F6] min-h-screen flex items-center justify-center px-6">
+        <div className="bg-white rounded-2xl p-8 text-center max-w-md shadow-lg border border-red-200">
+          <div className="flex justify-center mb-4">
+            <AlertCircle size={40} className="text-red-500" />
+          </div>
+          <h2 className="text-xl font-bold text-[#1B4332] mb-2">Error</h2>
+          <p className="text-slate-600 mb-6">{error}</p>
+          <Link href="/dashboard/nurses">
+            <Button className="w-full bg-[#37A47C] hover:bg-[#1B4332]">
+              Kembali ke Daftar Perawat
+            </Button>
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const name = nurseData?.user?.name || 'Perawat';
+  const rating = nurseData?.rating || 4.9;
+  const experience = nurseData?.yearsExperience || 5;
+  const sessionsCompleted = nurseData?.sessionsCompleted || 0;
+  const location = nurseData?.serviceArea || 'Lokasi Tidak Diketahui';
+  const bio = nurseData?.bio || 'Perawat profesional berpengalaman dalam perawatan lansia.';
+
   return (
     <div className="bg-[#FBF9F6] min-h-screen font-sans text-slate-800 pb-48">
       {/* Photo Header */}
@@ -16,64 +80,69 @@ export default function NurseProfilePage() {
           <ArrowLeft size={20} />
         </Link>
 
-        <div className="absolute bottom-6 left-6 right-6 z-10">
-          <div className="flex justify-between items-end">
-            <div>
-              <h1 className="font-serif text-3xl font-bold text-white leading-tight mb-1">Ners Rina Suryani</h1>
-              <div className="flex items-center text-emerald-100 text-sm gap-4">
-                <span className="flex items-center gap-1"><MapPin size={14} /> Solo</span>
-                <span className="flex items-center gap-1 text-[#F59E0B] font-bold">
-                  <Star size={14} fill="currentColor" /> 4.9 (86 Ulasan)
-                </span>
-              </div>
-            </div>
-            <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center flex-shrink-0">
-              <Award size={24} className="text-emerald-100" />
-            </div>
-          </div>
-        </div>
+         <div className="absolute bottom-6 left-6 right-6 z-10">
+           <div className="flex justify-between items-end">
+             <div>
+               <h1 className="font-serif text-3xl font-bold text-white leading-tight mb-1">{name}</h1>
+               <div className="flex items-center text-emerald-100 text-sm gap-4">
+                 <span className="flex items-center gap-1"><MapPin size={14} /> {location}</span>
+                 <span className="flex items-center gap-1 text-[#F59E0B] font-bold">
+                   <Star size={14} fill="currentColor" /> {rating} ({nurseData?.reviewCount || 0} Ulasan)
+                 </span>
+               </div>
+             </div>
+             <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center flex-shrink-0">
+               <Award size={24} className="text-emerald-100" />
+             </div>
+           </div>
+         </div>
       </div>
 
       <div className="max-w-3xl mx-auto px-6 -mt-4 relative z-20 space-y-4">
 
-        {/* Key Stats */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex justify-between divide-x divide-slate-100">
-          <div className="flex-1 text-center">
-            <div className="font-bold text-xl text-[#1B4332]">5+</div>
-            <div className="text-xs text-slate-500 mt-1">Tahun Pengalaman</div>
-          </div>
-          <div className="flex-1 text-center">
-            <div className="font-bold text-xl text-[#1B4332]">124</div>
-            <div className="text-xs text-slate-500 mt-1">Sesi Selesai</div>
-          </div>
-          <div className="flex-1 text-center">
-            <div className="font-bold text-xl text-[#37A47C]">STR</div>
-            <div className="text-xs text-slate-500 mt-1">Aktif & Valid</div>
-          </div>
-        </div>
+         {/* Key Stats */}
+         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex justify-between divide-x divide-slate-100">
+           <div className="flex-1 text-center">
+             <div className="font-bold text-xl text-[#1B4332]">{experience}+</div>
+             <div className="text-xs text-slate-500 mt-1">Tahun Pengalaman</div>
+           </div>
+           <div className="flex-1 text-center">
+             <div className="font-bold text-xl text-[#1B4332]">{sessionsCompleted}</div>
+             <div className="text-xs text-slate-500 mt-1">Sesi Selesai</div>
+           </div>
+           <div className="flex-1 text-center">
+             <div className="font-bold text-xl text-[#37A47C]">{nurseData?.strStatus || 'STR'}</div>
+             <div className="text-xs text-slate-500 mt-1">Aktif & Valid</div>
+           </div>
+         </div>
 
-        {/* About */}
-        <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
-          <h3 className="font-bold text-lg text-[#1B4332] mb-3">Tentang Ners Rina</h3>
-          <p className="text-slate-600 font-light leading-relaxed text-sm">
-            Perawat profesional tersertifikasi dengan pengalaman lebih dari 5 tahun di ruang ICU dan homecare lansia. Ahli dalam pendampingan bedridden, manajemen diabetes, dan perawatan pasca stroke.
-          </p>
+         {/* About */}
+         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
+           <h3 className="font-bold text-lg text-[#1B4332] mb-3">Tentang {name}</h3>
+           <p className="text-slate-600 font-light leading-relaxed text-sm">
+             {bio}
+           </p>
 
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <h4 className="font-bold text-sm text-slate-800 mb-3">Sertifikasi & Keahlian</h4>
-            <div className="flex flex-wrap gap-2">
-              <span className="text-xs bg-[#E2F1EC] text-[#37A47C] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1">
-                <CheckCircle2 size={12} /> BTCLS
-              </span>
-              <span className="text-xs bg-[#E2F1EC] text-[#37A47C] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1">
-                <CheckCircle2 size={12} /> Wound Care
-              </span>
-              <span className="text-xs bg-slate-100 text-slate-600 font-semibold px-3 py-1.5 rounded-lg">
-                Gerontologi
-              </span>
-            </div>
-          </div>
-        </div>
+           <div className="mt-4 pt-4 border-t border-slate-100">
+             <h4 className="font-bold text-sm text-slate-800 mb-3">Sertifikasi & Keahlian</h4>
+             <div className="flex flex-wrap gap-2">
+               {nurseData?.certifications?.map((cert: string, i: number) => (
+                 <span key={i} className="text-xs bg-[#E2F1EC] text-[#37A47C] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1">
+                   <CheckCircle2 size={12} /> {cert}
+                 </span>
+               )) || (
+                 <>
+                   <span className="text-xs bg-[#E2F1EC] text-[#37A47C] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1">
+                     <CheckCircle2 size={12} /> STR
+                   </span>
+                   <span className="text-xs bg-slate-100 text-slate-600 font-semibold px-3 py-1.5 rounded-lg">
+                     Gerontologi
+                   </span>
+                 </>
+               )}
+             </div>
+           </div>
+         </div>
 
         {/* Services & Prices */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
