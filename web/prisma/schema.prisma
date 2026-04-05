@@ -1,0 +1,449 @@
+// This is your Prisma schema file for PARING Homecare Platform
+// Generated from comprehensive analysis of hardcoded components
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ===== USERS & AUTHENTICATION =====
+
+model User {
+  id                String    @id @default(cuid())
+  email             String    @unique
+  password          String    // Will be hashed with bcrypt
+  name              String
+  phone             String    @unique
+  role              UserRole
+  status            UserStatus @default(ACTIVE)
+  
+  // Relations
+  patientProfile    PatientProfile?
+  nurseProfile      NurseProfile?
+  consultations     Consultation[] @relation("UserConsultations")
+  receivedMessages  Consultation[] @relation("ConsultationRecipient")
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+enum UserRole {
+  PATIENT
+  NURSE
+  ADMIN
+}
+
+enum UserStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
+  PENDING_VERIFICATION
+}
+
+// ===== PATIENT PROFILE =====
+
+model PatientProfile {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  // Basic Info
+  fullName          String
+  age               Int
+  gender            Gender
+  weight            Float?
+  height            Float?
+  address           String
+  
+  // Medical History
+  bloodPressureNormal String?
+  bloodSugarAverage   Float?
+  hasDiabetes       Boolean   @default(false)
+  isBedridden       Boolean   @default(false)
+  drugAllergies     String?
+  notes             String?
+  
+  // AI Consent
+  aiConsentGiven    Boolean   @default(false)
+  
+  // Emergency Contact
+  emergencyName     String
+  emergencyPhone    String
+  
+  // Relations
+  bookings          Booking[]
+  sessions          MonitoringSession[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+enum Gender {
+  MALE
+  FEMALE
+}
+
+// ===== NURSE PROFILE =====
+
+model NurseProfile {
+  id                String    @id @default(cuid())
+  userId            String    @unique
+  user              User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  
+  yearsExperience   Int
+  biography         String    @db.Text
+  
+  specializations   NurseSpecialization[]
+  serviceTypes      NurseServiceType[]
+  
+  availability      String
+  serviceArea       String
+  
+  strNumber         String?   @unique
+  strExpiry         DateTime?
+  strVerified       Boolean   @default(false)
+  documents         NurseDocument[]
+  
+  rating            Float     @default(0.0)
+  totalReviews      Int       @default(0)
+  completedSessions Int       @default(0)
+  
+  visitCarePricing  Float     @default(150000)
+  liveOutPricing    Float     @default(250000)
+  liveInPricing     Float     @default(3500000)
+  
+  bookings          Booking[]
+  sessions          MonitoringSession[]
+  consultations     Consultation[]
+  reviews           NurseReview[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  
+  @@index([serviceArea])
+  @@index([rating])
+}
+
+model NurseSpecialization {
+  id                String    @id @default(cuid())
+  nurseId           String
+  nurse             NurseProfile @relation(fields: [nurseId], references: [id], onDelete: Cascade)
+  specialization    String
+  
+  @@unique([nurseId, specialization])
+}
+
+model NurseServiceType {
+  id                String    @id @default(cuid())
+  nurseId           String
+  nurse             NurseProfile @relation(fields: [nurseId], references: [id], onDelete: Cascade)
+  serviceType       ServiceType
+  
+  @@unique([nurseId, serviceType])
+}
+
+enum ServiceType {
+  NON_MEDIS
+  VISIT_CARE
+  LIVE_OUT_CARE
+  LIVE_IN_CARE
+}
+
+model NurseDocument {
+  id                String    @id @default(cuid())
+  nurseId           String
+  nurse             NurseProfile @relation(fields: [nurseId], references: [id], onDelete: Cascade)
+  
+  documentType      DocumentType
+  fileUrl           String
+  verificationStatus DocumentStatus @default(PENDING)
+  uploadedAt        DateTime  @default(now())
+  verifiedAt        DateTime?
+  
+  @@unique([nurseId, documentType])
+}
+
+enum DocumentType {
+  STR
+  KTP
+  CERTIFICATION
+}
+
+enum DocumentStatus {
+  PENDING
+  VERIFIED
+  REJECTED
+}
+
+// ===== SERVICES & PRICING =====
+
+model Service {
+  id                String    @id @default(cuid())
+  name              String    @unique
+  type              ServiceType
+  description       String    @db.Text
+  basePrice         Float
+  maxDurationHours  Int?
+  
+  bookings          Booking[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// ===== BOOKINGS =====
+
+model Booking {
+  id                String    @id @default(cuid())
+  invoiceNumber     String    @unique
+  
+  patientId         String
+  patient           PatientProfile @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  nurseId           String
+  nurse             NurseProfile @relation(fields: [nurseId], references: [id], onDelete: Cascade)
+  
+  serviceId         String
+  service           Service   @relation(fields: [serviceId], references: [id])
+  
+  userId            String
+  
+  requestedDate     DateTime
+  requestedTime     String
+  duration          Int?
+  notes             String?   @db.Text
+  
+  basePrice         Float
+  totalPrice        Float
+  
+  status            BookingStatus @default(WAITING_PAYMENT)
+  paymentStatus     PaymentStatus @default(UNPAID)
+  
+  payment           Payment?
+  sessions          MonitoringSession[]
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+  completedAt       DateTime?
+  
+  @@index([patientId])
+  @@index([nurseId])
+  @@index([status])
+}
+
+enum BookingStatus {
+  WAITING_PAYMENT
+  CONFIRMED
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentStatus {
+  UNPAID
+  PENDING
+  PAID
+  FAILED
+  REFUNDED
+}
+
+// ===== PAYMENTS =====
+
+model Payment {
+  id                String    @id @default(cuid())
+  
+  bookingId         String    @unique
+  booking           Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  amount            Float
+  method            PaymentMethod
+  
+  midtransOrderId   String?   @unique
+  midtransSnapshot  String?   @db.Text
+  
+  status            PaymentStatus @default(UNPAID)
+  paidAt            DateTime?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CREDIT_CARD
+  E_WALLET
+}
+
+// ===== MONITORING SESSIONS =====
+
+model MonitoringSession {
+  id                String    @id @default(cuid())
+  
+  bookingId         String
+  booking           Booking   @relation(fields: [bookingId], references: [id], onDelete: Cascade)
+  
+  patientId         String
+  patient           PatientProfile @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  
+  nurseId           String
+  nurse             NurseProfile @relation(fields: [nurseId], references: [id], onDelete: Cascade)
+  
+  serviceType       ServiceType
+  
+  departureTime     DateTime?
+  arrivalTime       DateTime?
+  startTime         DateTime
+  endTime           DateTime?
+  
+  status            SessionStatus @default(SCHEDULED)
+  
+  vitals            VitalRecord[]
+  activities        ActivityLog[]
+  report            SessionReport?
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+enum SessionStatus {
+  SCHEDULED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+}
+
+// ===== VITAL RECORDS =====
+
+model VitalRecord {
+  id                String    @id @default(cuid())
+  
+  sessionId         String
+  session           MonitoringSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  bloodPressureSys  Int?
+  bloodPressureDias Int?
+  bloodSugar        Float?
+  temperature       Float?
+  heartRate         Int?
+  
+  notes             String?   @db.Text
+  recordedAt        DateTime  @default(now())
+}
+
+// ===== ACTIVITY LOGS =====
+
+model ActivityLog {
+  id                String    @id @default(cuid())
+  
+  sessionId         String
+  session           MonitoringSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  emotionalState    String?
+  activityType      String
+  activityDuration  Int?
+  appetite          String?
+  mood              String?
+  notes             String?   @db.Text
+  
+  recordedAt        DateTime  @default(now())
+}
+
+// ===== SESSION REPORTS =====
+
+model SessionReport {
+  id                String    @id @default(cuid())
+  
+  sessionId         String    @unique
+  session           MonitoringSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  
+  summary           String    @db.Text
+  observations      String?   @db.Text
+  recommendations   String?   @db.Text
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+// ===== CONSULTATIONS & MESSAGING =====
+
+model Consultation {
+  id                String    @id @default(cuid())
+  
+  userId            String
+  user              User      @relation("UserConsultations", fields: [userId], references: [id], onDelete: Cascade)
+  
+  recipientId       String
+  recipient         User      @relation("ConsultationRecipient", fields: [recipientId], references: [id], onDelete: Cascade)
+  
+  nurseId           String?
+  nurse             NurseProfile? @relation(fields: [nurseId], references: [id], onDelete: SetNull)
+  
+  messages          Message[]
+  isActive          Boolean   @default(true)
+  
+  createdAt         DateTime  @default(now())
+  updatedAt         DateTime  @updatedAt
+}
+
+model Message {
+  id                String    @id @default(cuid())
+  
+  consultationId    String
+  consultation      Consultation @relation(fields: [consultationId], references: [id], onDelete: Cascade)
+  
+  senderId          String
+  content           String    @db.Text
+  
+  isRead            Boolean   @default(false)
+  readAt            DateTime?
+  
+  createdAt         DateTime  @default(now())
+}
+
+// ===== AI RECOMMENDATIONS =====
+
+model AiRecommendation {
+  id                String    @id @default(cuid())
+  patientId         String
+  recommendedNurseIds String[]
+  matchScore        Float
+  reasoning         String    @db.Text
+  
+  createdAt         DateTime  @default(now())
+  expiresAt         DateTime
+}
+
+// ===== REVIEWS =====
+
+model NurseReview {
+  id                String    @id @default(cuid())
+  
+  nurseId           String
+  nurse             NurseProfile @relation(references: [id], fields: [nurseId], onDelete: Cascade)
+  
+  bookingId         String
+  rating            Int
+  review            String?   @db.Text
+  createdBy         String
+  
+  createdAt         DateTime  @default(now())
+}
+
+// ===== EMERGENCY LOGS =====
+
+model EmergencyLog {
+  id                String    @id @default(cuid())
+  patientId         String
+  nurseId           String
+  severity          String
+  location          String?
+  status            String
+  notificationsSent String[]
+  responseTime      Int?
+  
+  createdAt         DateTime  @default(now())
+}

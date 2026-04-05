@@ -7,5 +7,5 @@
 **Requirements:** [NURSE-01, NURSE-02, NURSE-03, NURSE-04, NURSE-05, NURSE-06]
 
 **Plans:**
-- [ ] 01-01-stepper-infrastructure.md — Stepper logic and Step 1/2.
+2/2 plans complete
 - [ ] 01-02-remaining-steps.md — Step 3, 4, 5 and final submission.
