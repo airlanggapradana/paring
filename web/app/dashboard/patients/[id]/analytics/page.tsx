@@ -1,18 +1,63 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, TrendingUp, TrendingDown, Activity, Brain, CheckCircle2, ChevronRight, Stethoscope } from 'lucide-react';
+import { ArrowLeft, TrendingUp, TrendingDown, Activity, Brain, CheckCircle2, ChevronRight, Stethoscope, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { analyticsAPI } from '@/lib/api-client';
 
 export default function PatientAnalyticsPage() {
-  const chartData = [
-    { name: 'W1', sistolik: 135, diastolik: 85 },
-    { name: 'W2', sistolik: 130, diastolik: 82 },
-    { name: 'W3', sistolik: 138, diastolik: 88 },
-    { name: 'W4', sistolik: 128, diastolik: 80 },
-    { name: 'Skrg', sistolik: 125, diastolik: 78 },
-  ];
+  const params = useParams();
+  const patientId = params.id as string;
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchAnalytics = async () => {
+      try {
+        setIsLoading(true);
+        const response = await analyticsAPI.getPatientAnalytics(patientId);
+        setAnalyticsData(response.data);
+      } catch (err) {
+        console.error('Failed to fetch analytics:', err);
+        // Keep default demo data
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (patientId) {
+      fetchAnalytics();
+    }
+  }, [patientId]);
+
+  // Default demo chart data (for visualization)
+  const chartData = analyticsData?.vitalsData ? 
+    analyticsData.vitalsData.map((vital: any, idx: number) => ({
+      name: `W${idx + 1}`,
+      sistolik: vital.bloodPressureSys || 120,
+      diastolik: vital.bloodPressureDias || 80,
+    }))
+    : [
+      { name: 'W1', sistolik: 135, diastolik: 85 },
+      { name: 'W2', sistolik: 130, diastolik: 82 },
+      { name: 'W3', sistolik: 138, diastolik: 88 },
+      { name: 'W4', sistolik: 128, diastolik: 80 },
+      { name: 'Skrg', sistolik: 125, diastolik: 78 },
+    ];
+
+  if (isLoading) {
+    return (
+      <div className="bg-[#FBF9F6] min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={40} className="animate-spin text-[#37A47C]" />
+          <p className="text-slate-600">Memuat analisis...</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-[#FBF9F6] min-h-screen font-sans text-slate-800 pb-20 flex flex-col">

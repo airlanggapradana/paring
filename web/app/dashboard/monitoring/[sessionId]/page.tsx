@@ -1,14 +1,72 @@
 'use client';
 
+import { useEffect, useState } from 'react';
+import { useParams, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { useSearchParams } from 'next/navigation';
-import { ArrowLeft, HeartPulse, Activity, Thermometer, Smile, Clock, MapPin, Search, Phone, MessageCircle, Map, Target, Heart, Move, Coffee } from 'lucide-react';
+import { ArrowLeft, HeartPulse, Activity, Thermometer, Smile, Clock, MapPin, Search, Phone, MessageCircle, Map, Target, Heart, Move, Coffee, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { sessionsAPI } from '@/lib/api-client';
 
 export default function MonitoringPage() {
+  const params = useParams();
   const searchParams = useSearchParams();
+  const sessionId = params.sessionId as string;
   const type = searchParams.get('type') || 'medical';
   const isMedical = type === 'medical';
+
+  const [session, setSession] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [vitals, setVitals] = useState<any[]>([]);
+
+  useEffect(() => {
+    const fetchSession = async () => {
+      try {
+        setIsLoading(true);
+        const response = await sessionsAPI.getDetail(sessionId);
+        setSession(response.data);
+        setVitals(response.data?.vitals || []);
+       } catch (err) {
+         console.error('Failed to fetch session:', err);
+         // Fallback to demo data
+         setSession({
+           id: sessionId,
+           patient: { fullName: 'Patient Name', age: 68 },
+           nurse: { user: { name: 'Nurse Name' } },
+           startTime: new Date(),
+           status: 'IN_PROGRESS'
+         });
+       } finally {
+        setIsLoading(false);
+      }
+    };
+
+    if (sessionId) {
+      fetchSession();
+    }
+  }, [sessionId]);
+
+  if (isLoading) {
+    return (
+      <div className="bg-[#FBF9F6] min-h-screen flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4">
+          <Loader2 size={40} className="animate-spin text-[#37A47C]" />
+          <p className="text-slate-600">Memuat sesi monitoring...</p>
+        </div>
+      </div>
+    );
+  }
+
+  const patientName = session?.patient?.fullName || 'Patient Name';
+  const nurseName = session?.nurse?.user?.name || 'Nurse Name';
+  const departureTime = session?.departureTime ? new Date(session.departureTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '07:30 WIB';
+  const arrivalTime = session?.arrivalTime ? new Date(session.arrivalTime).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' }) : '08:00 WIB';
+  
+  // Get latest vital readings
+  const latestVital = vitals && vitals.length > 0 ? vitals[0] : null;
+  const bloodPressure = latestVital ? `${latestVital.bloodPressureSys}/${latestVital.bloodPressureDias}` : '120/80';
+  const bloodSugar = latestVital?.bloodSugar || 110;
+  const temperature = latestVital?.temperature || 36.5;
+  const heartRate = latestVital?.heartRate || 75;
 
   return (
     <div className="bg-[#FBF9F6] min-h-screen font-sans text-slate-800 pb-24">
@@ -27,17 +85,17 @@ export default function MonitoringPage() {
         </div>
         
         <div className="relative z-10">
-          <p className="text-emerald-100/80 text-xs font-bold uppercase tracking-widest mb-1">Pasien Dirawat</p>
-          <h1 className="font-serif text-3xl font-bold text-white mb-4">{isMedical ? 'Ibu Kartini' : 'Opa Sastro'}</h1>
+           <p className="text-emerald-100/80 text-xs font-bold uppercase tracking-widest mb-1">Pasien Dirawat</p>
+           <h1 className="font-serif text-3xl font-bold text-white mb-4">{patientName}</h1>
           
           <div className="flex items-center gap-3">
              <div className="w-10 h-10 bg-slate-200 rounded-xl overflow-hidden shrink-0 relative">
                <div className="absolute inset-0 bg-slate-300"></div>
              </div>
-             <div>
-               <p className="text-xs text-emerald-100 font-medium">Perawat Bertugas:</p>
-               <p className="text-sm text-white font-bold">Ners Rina Suryani</p>
-             </div>
+           <div>
+                <p className="text-xs text-emerald-100 font-medium">Perawat Bertugas:</p>
+                <p className="text-sm text-white font-bold">{nurseName}</p>
+              </div>
           </div>
         </div>
       </div>
@@ -70,25 +128,25 @@ export default function MonitoringPage() {
 
              <div className="flex justify-between relative z-10 text-center">
                
-               <div className="flex flex-col items-center gap-2">
-                 <div className="w-6 h-6 rounded-full bg-[#37A47C] border-4 border-white shadow-sm flex items-center justify-center text-white">
-                   <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
-                 </div>
-                 <div>
-                   <p className="text-[10px] font-bold text-slate-700">Berangkat</p>
-                   <p className="text-[9px] text-slate-400">{isMedical ? '07:30 WIB' : '13:30 WIB'}</p>
-                 </div>
-               </div>
+                <div className="flex flex-col items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-[#37A47C] border-4 border-white shadow-sm flex items-center justify-center text-white">
+                    <div className="w-1.5 h-1.5 bg-white rounded-full"></div>
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-slate-700">Berangkat</p>
+                    <p className="text-[9px] text-slate-400">{departureTime}</p>
+                  </div>
+                </div>
 
-               <div className="flex flex-col items-center gap-2 -ml-4">
-                 <div className="w-6 h-6 rounded-full bg-[#37A47C] border-4 border-white shadow-sm flex items-center justify-center">
-                   <MapPin size={10} className="text-white fill-white" />
-                 </div>
-                 <div>
-                   <p className="text-[10px] font-bold text-[#37A47C]">Sampai Lokasi</p>
-                   <p className="text-[9px] text-slate-500">{isMedical ? '08:00 WIB' : '14:00 WIB'}</p>
-                 </div>
-               </div>
+                <div className="flex flex-col items-center gap-2 -ml-4">
+                  <div className="w-6 h-6 rounded-full bg-[#37A47C] border-4 border-white shadow-sm flex items-center justify-center">
+                    <MapPin size={10} className="text-white fill-white" />
+                  </div>
+                  <div>
+                    <p className="text-[10px] font-bold text-[#37A47C]">Sampai Lokasi</p>
+                    <p className="text-[9px] text-slate-500">{arrivalTime}</p>
+                  </div>
+                </div>
 
                <div className="flex flex-col items-center gap-2">
                  <div className="w-6 h-6 rounded-full bg-[#E2F1EC] border-4 border-white shadow-sm flex items-center justify-center"></div>
@@ -109,32 +167,32 @@ export default function MonitoringPage() {
         
         {isMedical ? (
           <div className="grid grid-cols-2 gap-4">
-            <div className="bg-white rounded-[2rem] p-5 shadow-lg shadow-[#1B4332]/5 border border-slate-100">
-               <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-[#FFF4F2] text-[#ff4d4f] rounded-xl flex items-center justify-center">
-                    <HeartPulse size={20} />
-                  </div>
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tekanan Darah</h3>
-               </div>
-               <div className="flex items-baseline gap-1">
-                 <span className="font-serif text-3xl font-bold text-[#1B4332]">120</span>
-                 <span className="text-[#37A47C] font-bold text-lg">/80</span>
-               </div>
-               <p className="text-xs text-slate-400 mt-2 font-medium">mmHg • Normal</p>
-            </div>
+             <div className="bg-white rounded-[2rem] p-5 shadow-lg shadow-[#1B4332]/5 border border-slate-100">
+                <div className="flex items-center gap-3 mb-4">
+                   <div className="w-10 h-10 bg-[#FFF4F2] text-[#ff4d4f] rounded-xl flex items-center justify-center">
+                     <HeartPulse size={20} />
+                   </div>
+                   <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Tekanan Darah</h3>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="font-serif text-3xl font-bold text-[#1B4332]">{bloodPressure.split('/')[0]}</span>
+                  <span className="text-[#37A47C] font-bold text-lg">/{bloodPressure.split('/')[1]}</span>
+                </div>
+                <p className="text-xs text-slate-400 mt-2 font-medium">mmHg • Normal</p>
+             </div>
 
-            <div className="bg-white rounded-[2rem] p-5 shadow-lg shadow-[#1B4332]/5 border border-slate-100">
-               <div className="flex items-center gap-3 mb-4">
-                  <div className="w-10 h-10 bg-[#E2F1EC] text-[#37A47C] rounded-xl flex items-center justify-center">
-                    <Activity size={20} />
-                  </div>
-                  <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Gula Darah</h3>
-               </div>
-               <div className="flex items-baseline gap-1">
-                 <span className="font-serif text-3xl font-bold text-[#1B4332]">110</span>
-               </div>
-               <p className="text-xs text-slate-400 mt-2 font-medium">mg/dL • Normal</p>
-            </div>
+             <div className="bg-white rounded-[2rem] p-5 shadow-lg shadow-[#1B4332]/5 border border-slate-100">
+                <div className="flex items-center gap-3 mb-4">
+                   <div className="w-10 h-10 bg-[#E2F1EC] text-[#37A47C] rounded-xl flex items-center justify-center">
+                     <Activity size={20} />
+                   </div>
+                   <h3 className="text-xs font-bold text-slate-500 uppercase tracking-wider">Gula Darah</h3>
+                </div>
+                <div className="flex items-baseline gap-1">
+                  <span className="font-serif text-3xl font-bold text-[#1B4332]">{bloodSugar}</span>
+                </div>
+                <p className="text-xs text-slate-400 mt-2 font-medium">mg/dL • Normal</p>
+             </div>
           </div>
         ) : (
           <div className="grid grid-cols-2 gap-4">
@@ -168,18 +226,18 @@ export default function MonitoringPage() {
 
         {/* Suhu & Mood Row */}
         <div className="grid grid-cols-2 gap-4">
-          <div className="bg-white rounded-[2rem] p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-             <div className="flex items-center gap-3 mb-4">
-                <div className="w-8 h-8 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center">
-                  <Thermometer size={16} />
-                </div>
-                <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Suhu Tubuh</h3>
-             </div>
-             <div className="flex items-baseline gap-1">
-               <span className="font-serif text-2xl font-bold text-[#1B4332]">36.5°</span>
-             </div>
-             <p className="text-[10px] text-slate-400 mt-1 font-medium">Diupdate 5 mnt lalu</p>
-          </div>
+           <div className="bg-white rounded-[2rem] p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
+              <div className="flex items-center gap-3 mb-4">
+                 <div className="w-8 h-8 bg-blue-50 text-blue-500 rounded-lg flex items-center justify-center">
+                   <Thermometer size={16} />
+                 </div>
+                 <h3 className="text-[10px] font-bold text-slate-500 uppercase tracking-wider">Suhu Tubuh</h3>
+              </div>
+              <div className="flex items-baseline gap-1">
+                <span className="font-serif text-2xl font-bold text-[#1B4332]">{temperature}°</span>
+              </div>
+              <p className="text-[10px] text-slate-400 mt-1 font-medium">Diupdate 5 mnt lalu</p>
+           </div>
 
           <div className="bg-white rounded-[2rem] p-5 shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
              <div className="flex items-center gap-3 mb-4">
