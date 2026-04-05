@@ -19,7 +19,16 @@ export default function NurseSearchPage() {
         setLoading(true);
         setError(null);
         const data = await nursesAPI.getList();
-        setNurses(data.data || data);
+        // Ensure nurses is always an array
+        let nursesList: any[] = [];
+        if (Array.isArray(data.data)) {
+          nursesList = data.data;
+        } else if (Array.isArray(data)) {
+          nursesList = data;
+        } else if (data.data && Array.isArray(data.data)) {
+          nursesList = data.data;
+        }
+        setNurses(nursesList);
       } catch (err: any) {
         console.error('Failed to fetch nurses:', err);
         setError(err.message || 'Failed to load nurses');

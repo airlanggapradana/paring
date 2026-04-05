@@ -17,7 +17,16 @@ export default function BookingList() {
         setLoading(true);
         setError(null);
         const data = await bookingsAPI.getList();
-        setBookings(data.data || data);
+        // Ensure bookings is always an array
+        let bookingsList: any[] = [];
+        if (Array.isArray(data.data)) {
+          bookingsList = data.data;
+        } else if (Array.isArray(data)) {
+          bookingsList = data;
+        } else if (data.data && Array.isArray(data.data)) {
+          bookingsList = data.data;
+        }
+        setBookings(bookingsList);
       } catch (err: any) {
         console.error('Failed to fetch bookings:', err);
         setError(err.message || 'Failed to load bookings');
@@ -37,7 +46,11 @@ export default function BookingList() {
       dibatalkan: []
     };
 
-    bookings.forEach(b => {
+    if (!Array.isArray(bookings)) {
+      return grouped;
+    }
+
+    bookings.forEach((b: any) => {
       const status = b.status?.toLowerCase();
       if (status === 'completed' || status === 'selesai') {
         grouped.selesai.push(b);

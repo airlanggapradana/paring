@@ -31,7 +31,16 @@ export default function NurseDashboard() {
 
         // Fetch bookings
         const bookingsData = await bookingsAPI.getList();
-        const bookingsList = bookingsData.data || bookingsData;
+        
+        // Ensure bookingsList is always an array
+        let bookingsList: any[] = [];
+        if (Array.isArray(bookingsData.data)) {
+          bookingsList = bookingsData.data;
+        } else if (Array.isArray(bookingsData)) {
+          bookingsList = bookingsData;
+        } else if (bookingsData.data && Array.isArray(bookingsData.data)) {
+          bookingsList = bookingsData.data;
+        }
         
         if (Array.isArray(bookingsList)) {
           // Filter upcoming bookings (not completed)
