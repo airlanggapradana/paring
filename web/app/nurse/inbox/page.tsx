@@ -1,47 +1,67 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, Filter, Calendar, ChevronRight, CheckCircle2, AlertCircle, Clock } from 'lucide-react';
+import { Search, Filter, Calendar, ChevronRight, CheckCircle2, AlertCircle, Clock, Loader2 } from 'lucide-react';
+import { bookingsAPI } from '@/lib/api-client';
 
 export default function NurseInbox() {
   const [activeTab, setActiveTab] = useState('baru');
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const bookings = {
-    baru: [
-      {
-        id: '1',
-        patient: 'Ibu Kartini',
-        service: 'Visit Care',
-        date: '12 Ags 2026',
-        time: '09:00 WIB',
-        status: 'PENDING',
-        paymentStatus: 'PAID'
-      },
-      {
-        id: '2',
-        patient: 'Opa Sastro',
-        service: 'Non-medis',
-        date: '12 Ags 2026',
-        time: '14:00 WIB',
-        status: 'PENDING',
-        paymentStatus: 'PAID'
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await bookingsAPI.getList();
+        setBookings(data.data || data);
+      } catch (err: any) {
+        console.error('Failed to fetch bookings:', err);
+        setError(err.message || 'Failed to load bookings');
+      } finally {
+        setLoading(false);
       }
-    ],
-    selesai: [
-      {
-        id: '2',
-        patient: 'Bapak Bardi',
-        service: 'Live-Out Care',
-        date: '10 Ags 2026',
-        time: '08:00 - 16:00',
-        status: 'COMPLETED',
-        paymentStatus: 'PAID'
+    };
+
+    fetchBookings();
+  }, []);
+
+  // Organize bookings by status
+  const organizeBookings = () => {
+    const grouped: { [key: string]: any[] } = {
+      baru: [],
+      selesai: []
+    };
+
+    bookings.forEach(b => {
+      const status = b.status?.toLowerCase();
+      if (status === 'completed' || status === 'selesai') {
+        grouped.selesai.push(b);
+      } else {
+        grouped.baru.push(b);
       }
-    ]
+    });
+
+    return grouped;
   };
 
-  const currentBookings = bookings[activeTab as keyof typeof bookings] || [];
+  if (error) {
+    return (
+      <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full min-h-screen flex flex-col bg-[#FBF9F6] items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center max-w-sm">
+          <p className="text-red-700 font-semibold mb-4">Error Loading Bookings</p>
+          <p className="text-red-600 text-sm mb-4">{error}</p>
+          <button onClick={() => window.location.reload()} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  const organizedBookings = organizeBookings();
+  const currentBookings = organizedBookings[activeTab as keyof typeof organizedBookings] || [];
 
   return (
     <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full min-h-screen flex flex-col bg-[#FBF9F6]">
@@ -50,6 +70,14 @@ export default function NurseInbox() {
         <p className="text-sm text-slate-500 font-light mt-1">Kelola permintaan layanan dari pasien.</p>
       </header>
 
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-[#37A47C]" />
+        </div>
+      )}
+
+      {!loading && (
+        <>
       {/* Tabs */}
       <div className="flex mb-6 bg-white rounded-full p-1 border border-slate-100 shadow-sm relative z-10">
         {['baru', 'selesai'].map((tab) => (
@@ -73,20 +101,20 @@ export default function NurseInbox() {
             <Link key={b.id} href={`/nurse/appointments/${b.id}`} className="block bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 hover:border-[#37A47C]/40 hover:shadow-md transition-all group">
               <div className="flex justify-between items-center mb-4 border-b border-slate-50 pb-4">
                 <div className="flex items-center gap-2">
-                  <span className={`w-2 h-2 rounded-full ${b.paymentStatus === 'PAID' ? 'bg-green-500' : 'bg-amber-500'}`}></span>
+                  <span className={`w-2 h-2 rounded-full ${b.paymentStatus === 'PAID' || b.paymentStatus === 'paid' ? 'bg-green-500' : 'bg-amber-500'}`}></span>
                   <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                    {b.paymentStatus === 'PAID' ? 'Pembayaran Berhasil' : 'Menunggu Bayar'}
+                    {b.paymentStatus === 'PAID' || b.paymentStatus === 'paid' ? 'Pembayaran Berhasil' : 'Menunggu Bayar'}
                   </span>
                 </div>
-                <div className={`px-3 py-1 font-bold text-[10px] rounded-full border ${b.status === 'COMPLETED' ? 'bg-slate-100 text-slate-600' : 'bg-[#E2F1EC] text-[#37A47C]'} flex items-center gap-1`}>
-                  {b.status === 'COMPLETED' && <CheckCircle2 size={10} />}
-                  {b.status}
+                <div className={`px-3 py-1 font-bold text-[10px] rounded-full border ${(b.status === 'COMPLETED' || b.status?.toLowerCase() === 'completed') ? 'bg-slate-100 text-slate-600' : 'bg-[#E2F1EC] text-[#37A47C]'} flex items-center gap-1`}>
+                  {(b.status === 'COMPLETED' || b.status?.toLowerCase() === 'completed') && <CheckCircle2 size={10} />}
+                  {b.status?.toUpperCase() || 'PENDING'}
                 </div>
               </div>
               
               <div className="flex gap-4">
                 <div className="w-14 h-14 rounded-2xl bg-[#1B4332] text-white flex items-center justify-center shrink-0 font-serif font-bold text-xl">
-                  {b.patient.charAt(4)}
+                  {b.patient?.charAt(0) || 'P'}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-[#1B4332] text-lg leading-tight mb-1">{b.patient}</h3>
@@ -121,6 +149,8 @@ export default function NurseInbox() {
           </div>
         )}
       </div>
+        </>
+      )}
     </div>
   );
 }

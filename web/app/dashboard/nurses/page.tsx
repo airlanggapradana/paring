@@ -1,74 +1,54 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Search, MapPin, Star, SlidersHorizontal, Activity, FileText, Sparkles, X } from 'lucide-react';
+import { Search, MapPin, Star, SlidersHorizontal, Activity, FileText, Sparkles, X, Loader2 } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
+import { nursesAPI } from '@/lib/api-client';
 
 export default function NurseSearchPage() {
   const [activeFilter, setActiveFilter] = useState('Semua');
   const [showChatNudge, setShowChatNudge] = useState(true);
+  const [nurses, setNurses] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Hardcoded nurses
-  const nurses = [
-    {
-      id: 1,
-      name: 'Ners Rina Suryani',
-      rating: 4.9,
-      specialty: 'Spesialis Penyakit Dalam',
-      services: ['Visit Care', 'Live-Out Care'],
-      location: 'Solo',
-      isRecommendation: true,
-      sessions: '124'
-    },
-    {
-      id: 2,
-      name: 'Ners Budiawan',
-      rating: 4.8,
-      specialty: 'Perawatan Geriatri',
-      services: ['Live-In Care'],
-      location: 'Jakarta Selatan',
-      isRecommendation: false,
-      sessions: '120+'
-    },
-    {
-      id: 3,
-      name: 'Ners Siti Aisyah',
-      rating: 5.0,
-      specialty: 'Perawatan Pasca Stroke',
-      services: ['Visit Care', 'Live-Out Care'],
-      location: 'Jakarta Timur',
-      isRecommendation: false,
-      sessions: '80+'
-    },
-    {
-      id: 4,
-      name: 'Siti Aminah',
-      rating: 4.7,
-      specialty: 'Pendamping Lansia (Non-medis)',
-      services: ['Non-medis'],
-      location: 'Solo',
-      isRecommendation: false,
-      sessions: '45+'
-    },
-    {
-      id: 5,
-      name: 'Bambang Heru',
-      rating: 4.8,
-      specialty: 'Pendamping & Teman Ngobrol',
-      services: ['Non-medis'],
-      location: 'Sukoharjo',
-      isRecommendation: false,
-      sessions: '30+'
-    }
-  ];
+  useEffect(() => {
+    const fetchNurses = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await nursesAPI.getList();
+        setNurses(data.data || data);
+      } catch (err: any) {
+        console.error('Failed to fetch nurses:', err);
+        setError(err.message || 'Failed to load nurses');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchNurses();
+  }, []);
 
   // Filtering logic
   const filteredNurses = activeFilter === 'Semua' 
     ? nurses.filter(n => !n.isRecommendation) 
-    : nurses.filter(n => !n.isRecommendation && n.services.includes(activeFilter));
+    : nurses.filter(n => !n.isRecommendation && n.services?.includes(activeFilter));
 
   const recommendations = nurses.filter(n => n.isRecommendation);
+
+  if (error) {
+    return (
+      <div className="px-6 py-8 pb-80 md:pb-8 max-w-3xl mx-auto w-full min-h-screen flex flex-col bg-[#FBF9F6] items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center max-w-sm">
+          <p className="text-red-700 font-semibold mb-4">Error Loading Nurses</p>
+          <p className="text-red-600 text-sm mb-4">{error}</p>
+          <button onClick={() => window.location.reload()} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">Retry</button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 py-8 pb-80 md:pb-8 max-w-3xl mx-auto w-full min-h-screen flex flex-col bg-[#FBF9F6]">
@@ -77,6 +57,14 @@ export default function NurseSearchPage() {
         <p className="text-sm text-slate-500 font-light mt-1">Temukan perawat terbaik untuk keluarga Anda</p>
       </header>
 
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-[#37A47C]" />
+        </div>
+      )}
+
+      {!loading && (
+        <>
       {/* Search Bar & Filters */}
       <div className="flex items-center gap-3 mb-8">
         <div className="flex-1 relative">
@@ -133,10 +121,10 @@ export default function NurseSearchPage() {
                      </div>
                    </div>
                    <p className="text-xs text-[#37A47C] font-semibold mb-2">{r.specialty}</p>
-                   <div className="flex items-center gap-2">
-                     {r.services.map(s => (
-                       <span key={s} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">{s}</span>
-                     ))}
+                    <div className="flex items-center gap-2">
+                      {r.services?.map((s: string) => (
+                        <span key={s} className="text-[10px] bg-slate-100 text-slate-600 px-2 py-0.5 rounded-md">{s}</span>
+                      ))}
                    </div>
                  </div>
                </Link>
@@ -168,11 +156,11 @@ export default function NurseSearchPage() {
                       <MapPin size={12} /> {n.location}
                     </div>
                   </div>
-                  <div className="flex justify-between items-end">
-                    <div className="flex flex-wrap items-center gap-1.5">
-                      {n.services.map(s => (
-                        <span key={s} className="text-[10px] bg-[#E2F1EC] text-[#37A47C] font-semibold px-2 py-1 rounded-lg">{s}</span>
-                      ))}
+                   <div className="flex justify-between items-end">
+                     <div className="flex flex-wrap items-center gap-1.5">
+                       {n.services?.map((s: string) => (
+                         <span key={s} className="text-[10px] bg-[#E2F1EC] text-[#37A47C] font-semibold px-2 py-1 rounded-lg">{s}</span>
+                       ))}
                     </div>
                     <span className="text-[10px] font-medium text-slate-400">{n.sessions} Sesi</span>
                   </div>
@@ -199,62 +187,64 @@ export default function NurseSearchPage() {
 
 
       {/* AI Chat Nudge */}
-      <AnimatePresence>
-        {showChatNudge && (
-          <motion.div 
-            initial={{ y: 100, opacity: 0 }}
-            animate={{ y: 0, opacity: 1 }}
-            exit={{ y: 100, opacity: 0 }}
-            transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed bottom-[100px] left-6 right-6 z-50"
-          >
-            <div className="bg-[#1B4332] text-white p-5 rounded-[2.5rem] shadow-2xl shadow-[#1B4332]/40 relative overflow-hidden border border-white/10">
-              {/* Background Decoration */}
-              <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
-                <Sparkles size={120} />
-              </div>
+       <AnimatePresence>
+         {showChatNudge && (
+           <motion.div 
+             initial={{ y: 100, opacity: 0 }}
+             animate={{ y: 0, opacity: 1 }}
+             exit={{ y: 100, opacity: 0 }}
+             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
+             className="fixed bottom-[100px] left-6 right-6 z-50"
+           >
+             <div className="bg-[#1B4332] text-white p-5 rounded-[2.5rem] shadow-2xl shadow-[#1B4332]/40 relative overflow-hidden border border-white/10">
+               {/* Background Decoration */}
+               <div className="absolute -right-4 -top-4 opacity-10 rotate-12">
+                 <Sparkles size={120} />
+               </div>
 
-              <button 
-                onClick={() => setShowChatNudge(false)}
-                className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
-              >
-                <X size={16} />
-              </button>
+               <button 
+                 onClick={() => setShowChatNudge(false)}
+                 className="absolute top-4 right-4 w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-white/60 hover:text-white transition-colors"
+               >
+                 <X size={16} />
+               </button>
 
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-3">
-                  <div className="w-8 h-8 bg-[#37A47C] rounded-xl flex items-center justify-center">
-                    <Sparkles size={16} className="text-white" />
-                  </div>
-                  <h3 className="font-bold text-sm tracking-tight">Kesulitan mencari perawat yang sesuai?</h3>
-                </div>
+               <div className="relative z-10">
+                 <div className="flex items-center gap-2 mb-3">
+                   <div className="w-8 h-8 bg-[#37A47C] rounded-xl flex items-center justify-center">
+                     <Sparkles size={16} className="text-white" />
+                   </div>
+                   <h3 className="font-bold text-sm tracking-tight">Kesulitan mencari perawat yang sesuai?</h3>
+                 </div>
 
-                <div className="flex flex-col gap-2 mb-5">
-                  <button className="text-left text-xs bg-white/10 hover:bg-white/15 py-2.5 px-4 rounded-2xl border border-white/5 transition-colors">
-                    “Saya perlu perawat untuk mengobati luka”
-                  </button>
-                  <button className="text-left text-xs bg-white/10 hover:bg-white/15 py-2.5 px-4 rounded-2xl border border-white/5 transition-colors">
-                    “Perawat rutin untuk Pratama”
-                  </button>
-                </div>
+                 <div className="flex flex-col gap-2 mb-5">
+                   <button className="text-left text-xs bg-white/10 hover:bg-white/15 py-2.5 px-4 rounded-2xl border border-white/5 transition-colors">
+                     "Saya perlu perawat untuk mengobati luka"
+                   </button>
+                   <button className="text-left text-xs bg-white/10 hover:bg-white/15 py-2.5 px-4 rounded-2xl border border-white/5 transition-colors">
+                     "Perawat rutin untuk Pratama"
+                   </button>
+                 </div>
 
-                <div className="flex items-center justify-between gap-4">
-                  <button className="flex-1 bg-[#37A47C] hover:bg-[#2d8665] text-white py-3.5 rounded-2xl font-bold text-sm shadow-lg shadow-black/10 transition-all active:scale-95 flex items-center justify-center gap-2">
-                    <Sparkles size={16} />
-                    Chat dengan AI
-                  </button>
-                  <button 
-                    onClick={() => setShowChatNudge(false)}
-                    className="text-white/50 hover:text-white text-xs font-medium px-2 py-1 transition-colors"
-                  >
-                    Jangan tampilkan lagi
-                  </button>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+                 <div className="flex items-center justify-between gap-4">
+                   <button className="flex-1 bg-[#37A47C] hover:bg-[#2d8665] text-white py-3.5 rounded-2xl font-bold text-sm shadow-lg shadow-black/10 transition-all active:scale-95 flex items-center justify-center gap-2">
+                     <Sparkles size={16} />
+                     Chat dengan AI
+                   </button>
+                   <button 
+                     onClick={() => setShowChatNudge(false)}
+                     className="text-white/50 hover:text-white text-xs font-medium px-2 py-1 transition-colors"
+                   >
+                     Jangan tampilkan lagi
+                   </button>
+                 </div>
+               </div>
+             </div>
+           </motion.div>
+         )}
+       </AnimatePresence>
+        </>
+      )}
     </div>
   );
 }

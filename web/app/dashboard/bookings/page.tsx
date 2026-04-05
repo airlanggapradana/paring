@@ -1,66 +1,92 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { Calendar, CheckCircle2, ChevronRight, FileText, Search, Activity } from 'lucide-react';
+import { Calendar, CheckCircle2, ChevronRight, FileText, Search, Activity, Loader2 } from 'lucide-react';
+import { bookingsAPI } from '@/lib/api-client';
 
 export default function BookingList() {
   const [activeTab, setActiveTab] = useState('aktif');
+  const [bookings, setBookings] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  // Hardcoded bookings for different states
-  const bookings = {
-    aktif: [
-      {
-        id: '1',
-        invoice: '#BK-PAR-8092',
-        status: 'Menunggu Pembayaran',
-        statusColor: 'bg-[#ff4d4f]/10 text-red-600 border-[#ff4d4f]/20',
-        nurse: 'Ners Rina Suryani',
-        service: 'Visit Care',
-        patient: 'Ibu Kartini',
-        date: '12 Ags 2026, 09:00 WIB',
-        hasPhoto: true
-      },
-      {
-        id: '2',
-        invoice: '#BK-PAR-8105',
-        status: 'Terkonfirmasi',
-        statusColor: 'bg-[#E2F1EC] text-[#37A47C] border-[#37A47C]/20',
-        nurse: 'Ners Siti Aisyah',
-        service: 'Live-Out Care',
-        patient: 'Bapak Bardi',
-        date: '15 Ags 2026, 08:00 - 16:00',
-        hasPhoto: false
+  useEffect(() => {
+    const fetchBookings = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        const data = await bookingsAPI.getList();
+        setBookings(data.data || data);
+      } catch (err: any) {
+        console.error('Failed to fetch bookings:', err);
+        setError(err.message || 'Failed to load bookings');
+      } finally {
+        setLoading(false);
       }
-    ],
-    selesai: [
-      {
-        id: '4',
-        invoice: '#BK-PAR-8110',
-        status: 'Selesai',
-        statusColor: 'bg-slate-100 text-slate-600 border-slate-200',
-        nurse: 'Ners Rina Suryani',
-        service: 'Non-medis',
-        patient: 'Opa Sastro',
-        date: '12 Ags 2026',
-        hasPhoto: false
-      },
-      {
-        id: '3',
-        invoice: '#BK-PAR-7982',
-        status: 'Selesai',
-        statusColor: 'bg-slate-100 text-slate-600 border-slate-200',
-        nurse: 'Ners Budiawan',
-        service: 'Live-In Care',
-        patient: 'Ibu Kartini',
-        date: '01 Ags 2026',
-        hasPhoto: true
+    };
+
+    fetchBookings();
+  }, []);
+
+  // Organize bookings by status
+  const organizeBookings = () => {
+    const grouped: { [key: string]: any[] } = {
+      aktif: [],
+      selesai: [],
+      dibatalkan: []
+    };
+
+    bookings.forEach(b => {
+      const status = b.status?.toLowerCase();
+      if (status === 'completed' || status === 'selesai') {
+        grouped.selesai.push(b);
+      } else if (status === 'cancelled' || status === 'dibatalkan') {
+        grouped.dibatalkan.push(b);
+      } else {
+        grouped.aktif.push(b);
       }
-    ],
-    dibatalkan: []
+    });
+
+    return grouped;
   };
 
-  const currentBookings = bookings[activeTab as keyof typeof bookings];
+  if (error) {
+    return (
+      <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full min-h-screen flex flex-col bg-[#FBF9F6] items-center justify-center">
+        <div className="bg-red-50 border border-red-200 rounded-2xl p-6 text-center max-w-sm">
+          <p className="text-red-700 font-semibold mb-4">Error Loading Bookings</p>
+          <p className="text-red-600 text-sm mb-4">{error}</p>
+          <button onClick={() => window.location.reload()} className="bg-red-600 text-white px-4 py-2 rounded-lg hover:bg-red-700">Retry</button>
+        </div>
+      </div>
+    );
+  }
+
+  const organizedBookings = organizeBookings();
+  const currentBookings = organizedBookings[activeTab as keyof typeof organizedBookings] || [];
+
+  const getStatusColor = (status: string) => {
+    const s = status?.toLowerCase();
+    if (s === 'completed' || s === 'selesai') {
+      return 'bg-slate-100 text-slate-600 border-slate-200';
+    } else if (s === 'cancelled' || s === 'dibatalkan') {
+      return 'bg-slate-100 text-slate-600 border-slate-200';
+    } else if (s === 'confirmed' || s === 'terkonfirmasi') {
+      return 'bg-[#E2F1EC] text-[#37A47C] border-[#37A47C]/20';
+    } else {
+      return 'bg-[#ff4d4f]/10 text-red-600 border-[#ff4d4f]/20';
+    }
+  };
+
+  const getStatusLabel = (status: string) => {
+    const s = status?.toLowerCase();
+    if (s === 'completed') return 'Selesai';
+    if (s === 'confirmed') return 'Terkonfirmasi';
+    if (s === 'cancelled') return 'Dibatalkan';
+    if (s === 'pending') return 'Menunggu Pembayaran';
+    return status || 'Pending';
+  };
 
   return (
     <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full min-h-screen flex flex-col bg-[#FBF9F6]">
@@ -69,6 +95,14 @@ export default function BookingList() {
         <p className="text-sm text-slate-500 font-light mt-1">Riwayat pesanan layanan homecare PARING.</p>
       </header>
       
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader2 className="w-8 h-8 animate-spin text-[#37A47C]" />
+        </div>
+      )}
+
+      {!loading && (
+        <>
       {/* Tabs */}
       <div className="flex mb-6 bg-white rounded-full p-1 border border-slate-100 shadow-sm relative z-10">
         {['aktif', 'selesai', 'dibatalkan'].map((tab) => (
@@ -91,16 +125,16 @@ export default function BookingList() {
           currentBookings.map((b) => (
             <Link key={b.id} href={`/dashboard/bookings/${b.id}`} className="block bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 hover:border-[#37A47C]/40 hover:shadow-md transition-all group">
               <div className="flex justify-between items-center mb-4 border-b border-slate-50 pb-4">
-                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{b.invoice}</span>
-                <div className={`px-3 py-1 font-bold text-xs rounded-full border ${b.statusColor} flex items-center gap-1`}>
-                  {b.status === 'Terkonfirmasi' && <CheckCircle2 size={12} />}
-                  {b.status}
+                <span className="text-xs font-bold text-slate-500 uppercase tracking-widest">{b.invoice || `#BK-${b.id.substring(0, 4)}`}</span>
+                <div className={`px-3 py-1 font-bold text-xs rounded-full border ${getStatusColor(b.status)} flex items-center gap-1`}>
+                  {(b.status?.toLowerCase() === 'confirmed' || b.status?.toLowerCase() === 'terkonfirmasi') && <CheckCircle2 size={12} />}
+                  {getStatusLabel(b.status)}
                 </div>
               </div>
               
               <div className="flex gap-4">
                  <div className={`w-16 h-16 rounded-2xl flex items-center justify-center shrink-0 overflow-hidden relative ${b.hasPhoto ? 'bg-slate-200' : 'bg-[#1B4332] text-white'}`}>
-                  {b.hasPhoto ? <div className="absolute inset-0 bg-slate-300"></div> : <span className="font-serif font-bold text-xl">{b.nurse.substring(5, 6)}</span>}
+                  {b.hasPhoto ? <div className="absolute inset-0 bg-slate-300"></div> : <span className="font-serif font-bold text-xl">{(b.nurseInitial || b.nurse?.charAt(0) || 'N')}</span>}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-bold text-[#1B4332] text-lg leading-tight mb-1">{b.nurse}</h3>
@@ -135,6 +169,8 @@ export default function BookingList() {
           </div>
         )}
       </div>
+        </>
+      )}
 
     </div>
   );
