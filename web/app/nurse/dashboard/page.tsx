@@ -1,42 +1,51 @@
 'use client';
 
-import { useState } from 'react';
-import { Bell, Calendar, Clock, ArrowRight, Activity, CheckCircle2, TrendingUp, Wallet } from 'lucide-react';
+import { useState, useEffect } from 'react';
+import { Bell, Calendar, Clock, ArrowRight, Activity, CheckCircle2, TrendingUp, Wallet, Loader } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
+import { useAppointments, useNurseById } from '@/lib/hooks/useApi';
+import { useAuthStore } from '@/lib/auth-context';
+import { toast } from 'sonner';
 
 export default function NurseDashboard() {
-  const [stats] = useState({
-    visits: 124,
-    earnings: '4.2M',
-    rating: 4.9
-  });
+  const { userId } = useAuthStore();
+  const { data: appointmentsData, isLoading: appointmentsLoading } = useAppointments();
+  const { data: nurseData, isLoading: nurseLoading } = useNurseById(userId || '');
 
-  const upcomingVisits = [
-    {
-      id: '1',
-      patient: 'Ibu Kartini',
-      time: '09:00 - 12:00',
-      type: 'Visit Care',
-      address: 'Jl. Slamet Riyadi No. 123, Solo',
-      status: 'PAID'
-    },
-    {
-      id: '2',
-      patient: 'Opa Sastro',
-      time: '14:00 - 16:00',
-      type: 'Non-medis',
-      address: 'Perum Gading Solo Baru, Solo',
-      status: 'PAID'
-    }
-  ];
+  const nurseProfile = nurseData?.data;
+  const appointments = appointmentsData?.data || [];
+
+  // Filter upcoming appointments (confirmed or in progress)
+  const upcomingVisits = appointments
+    .filter((apt: any) => apt.status === 'CONFIRMED' || apt.status === 'IN_PROGRESS')
+    .slice(0, 2);
+
+  const stats = {
+    visits: appointments.length,
+    earnings: `${((appointments.length * 150000) / 1000000).toFixed(1)}M`, // Estimate based on visits
+    rating: nurseProfile?.rating || 4.9
+  };
+
+  const formatTime = (date: string | null) => {
+    if (!date) return '';
+    return new Date(date).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' });
+  };
+
+  if (appointmentsLoading || nurseLoading) {
+    return (
+      <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full flex items-center justify-center min-h-screen">
+        <Loader className="animate-spin" size={40} />
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full">
       {/* Top Header */}
       <header className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-serif text-2xl font-bold text-[#1B4332]">Halo, Ners Rina 👋</h1>
+          <h1 className="font-serif text-2xl font-bold text-[#1B4332]">Halo, {nurseProfile?.fullName?.split(' ')[0] || 'Ners'} 👋</h1>
           <p className="text-sm text-slate-500 font-light mt-1">Mitra Perawat PARING</p>
         </div>
         <div className="flex gap-3">
@@ -76,29 +85,31 @@ export default function NurseDashboard() {
       <div className="mb-10">
         <div className="flex items-center justify-between mb-4 px-1">
           <h2 className="font-bold text-lg text-slate-800">Kunjungan Terdekat</h2>
-          <Link href="/nurse/inbox" className="text-sm font-bold text-[#37A47C] hover:underline">Lihat Semua</Link>
+          <Link href="/nurse/appointments" className="text-sm font-bold text-[#37A47C] hover:underline">Lihat Semua</Link>
         </div>
 
         {upcomingVisits.length > 0 ? (
-          upcomingVisits.map((visit) => (
+          upcomingVisits.map((visit: any) => (
             <div key={visit.id} className="bg-[#37A47C] rounded-[2rem] p-1 shadow-lg shadow-[#37A47C]/20 relative overflow-hidden group hover:scale-[1.02] transition-transform mb-4">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl opacity-50"></div>
 
               <Link href={`/nurse/appointments/${visit.id}`} className="block p-5 bg-[#37A47C] rounded-[1.8rem] relative z-10">
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2 bg-emerald-700/50 px-3 py-1.5 rounded-full border border-white/10">
-                    <span className="text-white text-[10px] font-bold uppercase tracking-widest">{visit.type}</span>
+                    <span className="text-white text-[10px] font-bold uppercase tracking-widest">{visit.serviceType || 'Care'}</span>
                   </div>
-                  <span className="text-emerald-100 text-xs font-bold flex items-center gap-1"><Clock size={12} /> {visit.time}</span>
+                  <span className="text-emerald-100 text-xs font-bold flex items-center gap-1">
+                    <Clock size={12} /> {visit.dueDate ? new Date(visit.dueDate).toLocaleDateString('id-ID', { month: 'short', day: '2-digit' }) : ''}
+                  </span>
                 </div>
 
                 <div className="flex gap-4 items-center">
                   <div className="w-14 h-14 bg-white/20 rounded-2xl overflow-hidden shrink-0 relative flex items-center justify-center text-white font-bold text-xl">
-                    {visit.patient.charAt(4)}
+                    {visit.patientName?.charAt(0) || 'P'}
                   </div>
                   <div className="flex-1">
-                    <h3 className="font-serif text-xl font-bold text-white mb-0.5">{visit.patient}</h3>
-                    <p className="text-xs text-emerald-100 font-medium tracking-wide truncate max-w-[200px]">{visit.address}</p>
+                    <h3 className="font-serif text-xl font-bold text-white mb-0.5">{visit.patientName || 'Pasien'}</h3>
+                    <p className="text-xs text-emerald-100 font-medium tracking-wide truncate max-w-[200px]">{visit.serviceName || 'Perawatan'}</p>
                   </div>
                   <div className="w-10 h-10 bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-sm">
                     <ArrowRight size={20} />
@@ -113,7 +124,7 @@ export default function NurseDashboard() {
               <Calendar size={32} />
             </div>
             <h3 className="font-bold text-slate-700 mb-2">Belum ada kunjungan</h3>
-            <p className="text-sm text-slate-500 font-light max-w-[200px]">Anda belum memiliki jadwal kunjungan dalam waktu dekat.</p>
+            <p className="text-sm text-slate-500 font-light max-w-[200px]">Anda belum memiliki jadwal kunjungan yang terkonfirmasi.</p>
           </div>
         )}
       </div>

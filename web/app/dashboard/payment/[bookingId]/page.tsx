@@ -1,16 +1,66 @@
 'use client';
 
+import { useParams, useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ArrowLeft, Wallet, ShieldCheck, ChevronRight, CreditCard, Landmark } from 'lucide-react';
+import { ArrowLeft, Wallet, ShieldCheck, ChevronRight, CreditCard, Landmark, Loader } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { useAppointmentById, useCreatePayment } from '@/lib/hooks/useApi';
+import { useState } from 'react';
+import { toast } from 'sonner';
 
 export default function PaymentCheckoutPage() {
+  const params = useParams();
+  const router = useRouter();
+  const bookingId = params?.bookingId as string;
+
+  const { data: appointmentData, isLoading } = useAppointmentById(bookingId);
+  const { mutate: createPayment, isPending } = useCreatePayment();
+  const [selectedMethod, setSelectedMethod] = useState('gopay');
+
+  const appointment = appointmentData?.data;
+
+  if (isLoading) {
+    return (
+      <div className="bg-[#FBF9F6] min-h-screen flex items-center justify-center">
+        <Loader className="animate-spin" size={40} />
+      </div>
+    );
+  }
+
+  if (!appointment) {
+    return (
+      <div className="bg-[#FBF9F6] min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-xl font-bold text-[#1B4332] mb-2">Booking tidak ditemukan</h2>
+          <Link href="/dashboard/bookings" className="text-[#37A47C] font-semibold">Kembali ke Booking Saya</Link>
+        </div>
+      </div>
+    );
+  }
+
+  const handlePayment = () => {
+    createPayment(bookingId, {
+      onSuccess: () => {
+        toast.success('Pembayaran berhasil diproses');
+        router.push('/dashboard/payment/success');
+      },
+      onError: (error: any) => {
+        const msg = error.response?.data?.message || 'Gagal memproses pembayaran';
+        toast.error(msg);
+      }
+    });
+  };
+
+  const totalPrice = appointment.totalPrice || 0;
+  const appFee = Math.round(totalPrice * 0.05); // 5% app fee
+  const total = totalPrice + appFee;
+
   return (
     <div className="bg-[#FBF9F6] min-h-screen font-sans text-slate-800 pb-28">
       
       {/* Header */}
       <header className="px-6 py-4 bg-white border-b border-slate-100 flex items-center justify-between sticky top-0 z-50">
-        <Link href="/dashboard/bookings/1" className="p-2 -ml-2 text-slate-500 hover:text-slate-800 rounded-full transition-colors">
+        <Link href={`/dashboard/bookings/${bookingId}`} className="p-2 -ml-2 text-slate-500 hover:text-slate-800 rounded-full transition-colors">
           <ArrowLeft size={24} />
         </Link>
         <h1 className="font-serif text-lg font-bold text-[#1B4332]">Pilih Pembayaran</h1>
@@ -25,16 +75,16 @@ export default function PaymentCheckoutPage() {
            <div className="absolute bottom-0 left-0 w-24 h-24 bg-[#37A47C] rounded-full blur-2xl opacity-20"></div>
            
            <p className="text-sm text-emerald-100/80 mb-1 relative z-10">Total Pembayaran</p>
-           <h2 className="font-serif text-4xl font-bold mb-4 relative z-10">Rp 155.000</h2>
+           <h2 className="font-serif text-4xl font-bold mb-4 relative z-10">Rp {total.toLocaleString('id-ID')}</h2>
            
            <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 flex flex-col gap-2 relative z-10 text-left border border-white/10">
               <div className="flex justify-between items-center text-sm">
-                <span className="text-emerald-100">Layanan Visit Care (Ibu Kartini)</span>
-                <span className="font-semibold">Rp 150.000</span>
+                <span className="text-emerald-100">Layanan {appointment.serviceType} ({appointment.patientName})</span>
+                <span className="font-semibold">Rp {totalPrice.toLocaleString('id-ID')}</span>
               </div>
               <div className="flex justify-between items-center text-sm">
                 <span className="text-emerald-100">Biaya Aplikasi</span>
-                <span className="font-semibold">Rp 5.000</span>
+                <span className="font-semibold">Rp {appFee.toLocaleString('id-ID')}</span>
               </div>
            </div>
         </div>
@@ -60,7 +110,7 @@ export default function PaymentCheckoutPage() {
                      <div className="w-12 h-6 bg-blue-500 rounded flex items-center justify-center text-[10px] text-white font-bold italic">GoPay</div>
                      <span className="font-bold text-slate-700">GoPay</span>
                    </div>
-                   <input type="radio" name="payment" className="accent-[#37A47C] w-5 h-5" defaultChecked />
+                   <input type="radio" name="payment" value="gopay" checked={selectedMethod === 'gopay'} onChange={(e) => setSelectedMethod(e.target.value)} className="accent-[#37A47C] w-5 h-5" />
                  </label>
                  
                  <label className="flex items-center justify-between p-4 border border-slate-100 rounded-2xl cursor-pointer hover:border-[#37A47C] transition-colors group">
@@ -68,7 +118,7 @@ export default function PaymentCheckoutPage() {
                      <div className="w-12 h-6 bg-purple-600 rounded flex items-center justify-center text-[10px] text-white font-bold italic">OVO</div>
                      <span className="font-bold text-slate-700">OVO</span>
                    </div>
-                   <input type="radio" name="payment" className="accent-[#37A47C] w-5 h-5" />
+                   <input type="radio" name="payment" value="ovo" checked={selectedMethod === 'ovo'} onChange={(e) => setSelectedMethod(e.target.value)} className="accent-[#37A47C] w-5 h-5" />
                  </label>
                </div>
             </div>
@@ -88,14 +138,14 @@ export default function PaymentCheckoutPage() {
                      <div className="w-12 h-8 bg-blue-800 rounded text-[10px] text-white font-black flex items-center justify-center">BCA</div>
                      <span className="font-bold text-slate-700">BCA Virtual Account</span>
                    </div>
-                   <input type="radio" name="payment" className="accent-[#37A47C] w-5 h-5" />
+                   <input type="radio" name="payment" value="bca" checked={selectedMethod === 'bca'} onChange={(e) => setSelectedMethod(e.target.value)} className="accent-[#37A47C] w-5 h-5" />
                  </label>
                  <label className="flex items-center justify-between p-4 border border-slate-100 rounded-2xl cursor-pointer hover:border-[#37A47C] transition-colors group">
                    <div className="flex items-center gap-3">
                      <div className="w-12 h-8 bg-orange-500 rounded text-[10px] text-white font-black flex items-center justify-center">BNI</div>
                      <span className="font-bold text-slate-700">BNI Virtual Account</span>
                    </div>
-                   <input type="radio" name="payment" className="accent-[#37A47C] w-5 h-5" />
+                   <input type="radio" name="payment" value="bni" checked={selectedMethod === 'bni'} onChange={(e) => setSelectedMethod(e.target.value)} className="accent-[#37A47C] w-5 h-5" />
                  </label>
                </div>
             </div>
@@ -115,10 +165,14 @@ export default function PaymentCheckoutPage() {
         <div className="max-w-3xl mx-auto flex items-center justify-between gap-4">
           <div className="flex-1">
             <p className="text-xs text-slate-500 font-medium mb-0.5">Total</p>
-            <p className="font-bold text-[#1B4332] text-xl">Rp 155.000</p>
+            <p className="font-bold text-[#1B4332] text-xl">Rp {total.toLocaleString('id-ID')}</p>
           </div>
-          <Button onClick={() => window.location.href='/dashboard/payment/success'} className="h-14 px-8 justify-center rounded-2xl bg-[#37A47C] hover:bg-[#1B4332] shadow-lg shadow-[#37A47C]/20 text-lg flex-1">
-            Bayar
+          <Button 
+            onClick={handlePayment}
+            disabled={isPending}
+            className="h-14 px-8 justify-center rounded-2xl bg-[#37A47C] hover:bg-[#1B4332] shadow-lg shadow-[#37A47C]/20 text-lg flex-1 disabled:opacity-50"
+          >
+            {isPending ? 'Memproses...' : 'Bayar'}
           </Button>
         </div>
       </div>
