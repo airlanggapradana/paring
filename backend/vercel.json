@@ -1,17 +1,15 @@
 {
   "version": 2,
-  "buildCommand": "npx prisma generate && nest build",
-  "outputDirectory": ".",
   "builds": [
     {
-      "src": "dist/src/main.js",
+      "src": "api/index.ts",
       "use": "@vercel/node"
     }
   ],
   "routes": [
     {
       "src": "/(.*)",
-      "dest": "dist/src/main.js",
+      "dest": "api/index.ts",
       "methods": ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"]
     }
   ]
