@@ -8,7 +8,7 @@ import {
 import { DatabaseService } from '../database/database.service';
 import { CreateAppointmentDto } from './dto/create-appointment.dto';
 import { UpdateAppointmentDto } from './dto/update-appointment.dto';
-import { AppointmentStatus, Prisma } from '../../generated/prisma/client';
+import { AppointmentStatus, Prisma } from 'generated/prisma/client';
 import { PaymentService } from '../payment/payment.service';
 
 @Injectable()

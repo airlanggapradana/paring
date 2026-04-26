@@ -6,7 +6,7 @@ import {
 import { DatabaseService } from '../database/database.service';
 import { CreateUserDto } from './dto/create-user.dto';
 import { UpdateUserDto } from './dto/update-user.dto';
-import { Role } from '../../generated/prisma';
+import { Role } from 'generated/prisma/client';
 import * as bcrypt from 'bcrypt';
 
 @Injectable()
