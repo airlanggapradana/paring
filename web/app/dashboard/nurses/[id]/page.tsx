@@ -1,15 +1,44 @@
 'use client';
 
+import { useParams } from 'next/navigation';
 import Link from 'next/link';
+import { useNurseById } from '@/lib/hooks/useApi';
 import { Button } from '@/components/ui/Button';
-import { ArrowLeft, Star, MapPin, Award, CheckCircle2, MessageCircle, CalendarClock } from 'lucide-react';
+import { ArrowLeft, Star, MapPin, Award, CheckCircle2, MessageCircle, CalendarClock, AlertCircle } from 'lucide-react';
+import { Loader } from '@/components/Loader';
 
 export default function NurseProfilePage() {
+  const params = useParams();
+  const nurseId = params.id as string;
+  
+  const { data: nurse, isLoading, error } = useNurseById(nurseId);
+
+  if (isLoading) {
+    return <Loader />;
+  }
+
+  if (error || !nurse?.data) {
+    return (
+      <div className="bg-[#FBF9F6] min-h-screen flex items-center justify-center px-6">
+        <div className="bg-white rounded-2xl p-8 text-center max-w-sm shadow-sm border border-slate-100">
+          <AlertCircle size={48} className="mx-auto mb-4 text-red-500" />
+          <h2 className="font-bold text-[#1B4332] mb-2">Gagal Memuat Data</h2>
+          <p className="text-slate-500 text-sm mb-4">Maaf, kami tidak dapat memuat profil perawat ini.</p>
+          <Link href="/dashboard/nurses" className="text-[#37A47C] font-bold text-sm hover:underline">
+            Kembali ke Daftar Perawat
+          </Link>
+        </div>
+      </div>
+    );
+  }
+
+  const nurseData = nurse.data;
+  const initials = nurseData.name?.charAt(0).toUpperCase() || 'N';
+
   return (
     <div className="bg-[#FBF9F6] min-h-screen font-sans text-slate-800 pb-48">
       {/* Photo Header */}
-      <div className="relative h-72 bg-slate-200">
-        <div className="absolute inset-0 bg-slate-300"></div> {/* Placeholder for image */}
+      <div className="relative h-72 bg-gradient-to-b from-[#37A47C]/20 to-slate-200">
         <div className="absolute inset-0 bg-gradient-to-t from-[#1B4332]/90 via-[#1B4332]/40 to-transparent"></div>
 
         <Link href="/dashboard/nurses" className="absolute top-6 left-6 w-10 h-10 bg-black/20 backdrop-blur-md rounded-full flex items-center justify-center text-white z-10 hover:bg-black/40 transition-colors">
@@ -19,16 +48,18 @@ export default function NurseProfilePage() {
         <div className="absolute bottom-6 left-6 right-6 z-10">
           <div className="flex justify-between items-end">
             <div>
-              <h1 className="font-serif text-3xl font-bold text-white leading-tight mb-1">Ners Rina Suryani</h1>
-              <div className="flex items-center text-emerald-100 text-sm gap-4">
-                <span className="flex items-center gap-1"><MapPin size={14} /> Solo</span>
-                <span className="flex items-center gap-1 text-[#F59E0B] font-bold">
-                  <Star size={14} fill="currentColor" /> 4.9 (86 Ulasan)
-                </span>
+              <h1 className="font-serif text-3xl font-bold text-white leading-tight mb-1">{nurseData.name}</h1>
+              <div className="flex items-center text-emerald-100 text-sm gap-4 flex-wrap">
+                <span className="flex items-center gap-1"><MapPin size={14} /> {nurseData.location || 'Indonesia'}</span>
+                {nurseData.rating && (
+                  <span className="flex items-center gap-1 text-[#F59E0B] font-bold">
+                    <Star size={14} fill="currentColor" /> {nurseData.rating.toFixed(1)} ({nurseData.reviewCount || 0} Ulasan)
+                  </span>
+                )}
               </div>
             </div>
             <div className="w-12 h-12 bg-white/20 backdrop-blur-md rounded-full flex items-center justify-center flex-shrink-0">
-              <Award size={24} className="text-emerald-100" />
+              <span className="text-white font-bold text-xl">{initials}</span>
             </div>
           </div>
         </div>
@@ -39,40 +70,38 @@ export default function NurseProfilePage() {
         {/* Key Stats */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex justify-between divide-x divide-slate-100">
           <div className="flex-1 text-center">
-            <div className="font-bold text-xl text-[#1B4332]">5+</div>
+            <div className="font-bold text-xl text-[#1B4332]">{nurseData.yearsOfExperience || 0}+</div>
             <div className="text-xs text-slate-500 mt-1">Tahun Pengalaman</div>
           </div>
           <div className="flex-1 text-center">
-            <div className="font-bold text-xl text-[#1B4332]">124</div>
+            <div className="font-bold text-xl text-[#1B4332]">{nurseData.sessionsCompleted || 0}</div>
             <div className="text-xs text-slate-500 mt-1">Sesi Selesai</div>
           </div>
           <div className="flex-1 text-center">
-            <div className="font-bold text-xl text-[#37A47C]">STR</div>
-            <div className="text-xs text-slate-500 mt-1">Aktif & Valid</div>
+            <div className="font-bold text-xl text-[#37A47C]">{nurseData.licenseStatus || 'Aktif'}</div>
+            <div className="text-xs text-slate-500 mt-1">Status STR</div>
           </div>
         </div>
 
         {/* About */}
         <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100">
-          <h3 className="font-bold text-lg text-[#1B4332] mb-3">Tentang Ners Rina</h3>
+          <h3 className="font-bold text-lg text-[#1B4332] mb-3">Tentang {nurseData.name?.split(' ')[0] || 'Perawat'}</h3>
           <p className="text-slate-600 font-light leading-relaxed text-sm">
-            Perawat profesional tersertifikasi dengan pengalaman lebih dari 5 tahun di ruang ICU dan homecare lansia. Ahli dalam pendampingan bedridden, manajemen diabetes, dan perawatan pasca stroke.
+            {nurseData.bio || 'Perawat profesional berpengalaman siap memberikan pelayanan kesehatan terbaik.'}
           </p>
 
-          <div className="mt-4 pt-4 border-t border-slate-100">
-            <h4 className="font-bold text-sm text-slate-800 mb-3">Sertifikasi & Keahlian</h4>
-            <div className="flex flex-wrap gap-2">
-              <span className="text-xs bg-[#E2F1EC] text-[#37A47C] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1">
-                <CheckCircle2 size={12} /> BTCLS
-              </span>
-              <span className="text-xs bg-[#E2F1EC] text-[#37A47C] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1">
-                <CheckCircle2 size={12} /> Wound Care
-              </span>
-              <span className="text-xs bg-slate-100 text-slate-600 font-semibold px-3 py-1.5 rounded-lg">
-                Gerontologi
-              </span>
+          {nurseData.specializations && nurseData.specializations.length > 0 && (
+            <div className="mt-4 pt-4 border-t border-slate-100">
+              <h4 className="font-bold text-sm text-slate-800 mb-3">Spesialisasi</h4>
+              <div className="flex flex-wrap gap-2">
+                {nurseData.specializations.map((spec: string, i: number) => (
+                  <span key={i} className="text-xs bg-[#E2F1EC] text-[#37A47C] font-semibold px-3 py-1.5 rounded-lg flex items-center gap-1">
+                    <CheckCircle2 size={12} /> {spec}
+                  </span>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
         </div>
 
         {/* Services & Prices */}
@@ -96,6 +125,14 @@ export default function NurseProfilePage() {
               </div>
               <div className="font-bold text-slate-800">Rp 250.000</div>
             </div>
+
+            <div className="p-4 border border-slate-100 rounded-2xl flex justify-between items-center group cursor-pointer hover:border-slate-300 transition-colors">
+              <div>
+                <div className="font-bold text-slate-700 mb-0.5">Live-In Care</div>
+                <div className="text-xs text-slate-400">Shift 24 Jam</div>
+              </div>
+              <div className="font-bold text-slate-800">Rp 400.000</div>
+            </div>
           </div>
         </div>
 
@@ -105,7 +142,7 @@ export default function NurseProfilePage() {
             <CalendarClock size={20} className="text-[#37A47C]" />
             <h3 className="font-bold text-lg text-[#1B4332]">Ketersediaan Terdekat</h3>
           </div>
-          <p className="text-xs text-slate-500 font-light mb-4">Minggu ini, Ners Rina bisa menerima pesanan.</p>
+          <p className="text-xs text-slate-500 font-light mb-4">Minggu ini, perawat bisa menerima pesanan.</p>
           <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar [&::-webkit-scrollbar]:hidden">
             {[
               { day: 'Sen', date: '12', status: 'available' },
@@ -127,14 +164,14 @@ export default function NurseProfilePage() {
       <div className="fixed bottom-[84px] inset-x-0 bg-white/80 backdrop-blur-xl border-t border-slate-100 p-4 z-40">
         <div className="max-w-3xl mx-auto flex gap-4">
           <Button
-            onClick={() => window.location.href = '/dashboard/consultation/1'}
+            onClick={() => window.location.href = `/dashboard/consultation/${nurseId}`}
             variant="outline"
             className="h-14  shrink-0 justify-center rounded-2xl border-slate-100 bg-[#E2F1EC] text-[#37A47C] hover:bg-[#37A47C] hover:text-white transition-all shadow-sm flex items-center"
           >
             <MessageCircle size={24} />
           </Button>
           <Button
-            onClick={() => window.location.href = '/dashboard/bookings/new'}
+            onClick={() => window.location.href = `/dashboard/bookings/new?nurseId=${nurseId}`}
             className="h-14 flex-1 justify-center rounded-2xl bg-[#37A47C] hover:bg-[#1B4332] shadow-lg shadow-[#37A47C]/20 text-lg"
           >
             Buat Booking

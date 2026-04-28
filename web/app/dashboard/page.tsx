@@ -1,15 +1,50 @@
 'use client';
 
 import { useState } from 'react';
-import { Bell, UserPlus, HeartPulse, FileText, Activity, AlertCircle, ArrowRight, Clock, X, PhoneCall, CheckCircle2 } from 'lucide-react';
+import { Bell, UserPlus, HeartPulse, FileText, Activity, AlertCircle, ArrowRight, Clock, PhoneCall, CheckCircle2 } from 'lucide-react';
 import Link from 'next/link';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useAppointments } from '@/lib/hooks/useApi';
+import { useAuthStore } from '@/lib/auth-context';
 
 export default function DashboardHome() {
-  // State for demonstration purposes
-  const [hasActiveSession, setHasActiveSession] = useState(true);
-  const [activeSessionType, setActiveSessionType] = useState<'medical' | 'non-medical'>('medical');
   const [showEmergencyModal, setShowEmergencyModal] = useState(false);
+  const { email } = useAuthStore();
+  const { data: appointmentsData } = useAppointments();
+
+  const appointments = appointmentsData?.data || [];
+  
+  // Get active appointments (CONFIRMED or IN_PROGRESS)
+  const activeAppointments = appointments.filter((apt: any) => 
+    apt.status === 'CONFIRMED' || apt.status === 'IN_PROGRESS'
+  );
+  
+  // Get completed appointments
+  const completedAppointments = appointments.filter((apt: any) => 
+    apt.status === 'COMPLETED'
+  );
+
+  const activeAppointment = activeAppointments[0];
+  const recentCompleted = completedAppointments[0];
+
+  // Extract first name from email
+  const firstName = email?.split('@')[0]?.split('.')[0] || 'User';
+  const capitalizedName = firstName.charAt(0).toUpperCase() + firstName.slice(1);
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  const formatTime = (date: string) => {
+    return new Date(date).toLocaleTimeString('id-ID', {
+      hour: '2-digit',
+      minute: '2-digit'
+    });
+  };
 
   return (
     <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full">
@@ -79,32 +114,13 @@ export default function DashboardHome() {
       {/* Top Header */}
       <header className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="font-serif text-2xl font-bold text-[#1B4332]">Halo, Budi 👋</h1>
+          <h1 className="font-serif text-2xl font-bold text-[#1B4332]">Halo, {capitalizedName} 👋</h1>
           <p className="text-sm text-slate-500 font-light mt-1">Keluarga PARING</p>
         </div>
-        <div className="flex gap-3">
-          {/* Debug Toggle Control */}
-          <div className="flex flex-col gap-1">
-            <button
-              onClick={() => setHasActiveSession(!hasActiveSession)}
-              className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 bg-slate-200 text-slate-600 rounded-lg"
-            >
-              Toggle Sesi {hasActiveSession ? 'OFF' : 'ON'}
-            </button>
-            {hasActiveSession && (
-              <button
-                onClick={() => setActiveSessionType(activeSessionType === 'medical' ? 'non-medical' : 'medical')}
-                className="text-[8px] font-bold uppercase tracking-widest px-2 py-1 bg-emerald-100 text-[#37A47C] rounded-lg"
-              >
-                {activeSessionType === 'medical' ? 'Set Non-medis' : 'Set Medis'}
-              </button>
-            )}
-          </div>
-          <button className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center relative text-slate-600 hover:bg-slate-50 transition-colors">
-            <Bell size={20} />
-            <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
-          </button>
-        </div>
+        <button className="w-12 h-12 bg-white rounded-2xl shadow-sm border border-slate-100 flex items-center justify-center relative text-slate-600 hover:bg-slate-50 transition-colors">
+          <Bell size={20} />
+          <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-white"></span>
+        </button>
       </header>
 
       {/* Quick Actions (Mobile First Grid) */}
@@ -141,33 +157,33 @@ export default function DashboardHome() {
           <h2 className="font-bold text-lg text-slate-800">Sesi Aktif Hari Ini</h2>
         </div>
 
-        {hasActiveSession ? (
+        {activeAppointment ? (
           /* Active Session Card */
           <div className="bg-[#37A47C] rounded-[2rem] p-1 shadow-lg shadow-[#37A47C]/20 relative overflow-hidden group hover:scale-[1.02] transition-transform">
             <div className="absolute top-0 right-0 w-32 h-32 bg-white/20 rounded-full blur-2xl opacity-50"></div>
 
-            <Link href={`/dashboard/monitoring/1?type=${activeSessionType}`} className="block p-5 bg-[#37A47C] rounded-[1.8rem] relative z-10">
+            <Link href={`/dashboard/monitoring/${activeAppointment.id}`} className="block p-5 bg-[#37A47C] rounded-[1.8rem] relative z-10">
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2 bg-emerald-700/50 px-3 py-1.5 rounded-full border border-white/10">
                   <div className="w-2 h-2 rounded-full bg-emerald-300 animate-pulse"></div>
                   <span className="text-white text-[10px] font-bold uppercase tracking-widest">
-                    {activeSessionType === 'medical' ? 'Visit Care' : 'Non-Medis'}
+                    {activeAppointment.serviceType || 'Care'}
                   </span>
                 </div>
                 <span className="text-emerald-100 text-xs font-bold flex items-center gap-1">
-                  <Clock size={12} /> {activeSessionType === 'medical' ? '09:00 - 12:00' : '14:00 - 16:00'}
+                  <Clock size={12} /> {formatTime(activeAppointment.appointmentDate)}
                 </span>
               </div>
 
               <div className="flex gap-4 items-center">
                 <div className="w-14 h-14 bg-white/20 rounded-2xl overflow-hidden shrink-0 relative flex items-center justify-center text-white font-serif font-bold text-xl">
-                  {activeSessionType === 'medical' ? 'K' : 'S'}
+                  {activeAppointment.patientName?.charAt(0) || 'P'}
                 </div>
                 <div className="flex-1">
                   <h3 className="font-serif text-xl font-bold text-white mb-0.5">
-                    {activeSessionType === 'medical' ? 'Ibu Kartini' : 'Opa Sastro'}
+                    {activeAppointment.patientName || 'Pasien'}
                   </h3>
-                  <p className="text-sm text-emerald-100 font-medium tracking-wide">Bersama Ners Rina Suryani</p>
+                  <p className="text-sm text-emerald-100 font-medium tracking-wide">Bersama {activeAppointment.nurseName || 'Perawat'}</p>
                 </div>
                 <div className="w-10 h-10 bg-white/20 text-white rounded-full flex items-center justify-center backdrop-blur-sm">
                   <ArrowRight size={20} />
@@ -178,33 +194,35 @@ export default function DashboardHome() {
         ) : (
           <div className="space-y-4">
             {/* Recently Completed Session Card */}
-            <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
-                  <CheckCircle2 size={12} className="text-[#37A47C]" />
-                  <span className="text-slate-600 text-[10px] font-bold uppercase tracking-widest">Sesi Selesai</span>
+            {recentCompleted ? (
+              <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 relative overflow-hidden group">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2 bg-slate-100 px-3 py-1.5 rounded-full border border-slate-200">
+                    <CheckCircle2 size={12} className="text-[#37A47C]" />
+                    <span className="text-slate-600 text-[10px] font-bold uppercase tracking-widest">Sesi Selesai</span>
+                  </div>
+                  <span className="text-slate-400 text-xs font-bold">{formatTime(recentCompleted.appointmentDate)}</span>
                 </div>
-                <span className="text-slate-400 text-xs font-bold">14:00 - 16:00 WIB</span>
-              </div>
 
-              <div className="flex gap-4 items-center mb-6">
-                <div className="w-14 h-14 bg-[#1B4332] rounded-2xl flex items-center justify-center text-white shrink-0 relative font-serif font-bold text-xl">
-                  S
+                <div className="flex gap-4 items-center mb-6">
+                  <div className="w-14 h-14 bg-[#1B4332] rounded-2xl flex items-center justify-center text-white shrink-0 relative font-serif font-bold text-xl">
+                    {recentCompleted.patientName?.charAt(0) || 'P'}
+                  </div>
+                  <div className="flex-1">
+                    <h3 className="font-serif text-xl font-bold text-[#1B4332] mb-0.5">{recentCompleted.patientName || 'Pasien'}</h3>
+                    <p className="text-sm text-slate-500 font-medium tracking-wide">{recentCompleted.serviceType || 'Perawatan'} Selesai</p>
+                  </div>
                 </div>
-                <div className="flex-1">
-                  <h3 className="font-serif text-xl font-bold text-[#1B4332] mb-0.5">Opa Sastro</h3>
-                  <p className="text-sm text-slate-500 font-medium tracking-wide">Pendampingan Non-medis Selesai</p>
-                </div>
-              </div>
 
-              <Link 
-                href="/dashboard/sessions/4/report?type=non-medical" 
-                className="w-full h-12 bg-[#E2F1EC] text-[#37A47C] hover:bg-[#37A47C] hover:text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-[#37A47C]/20"
-              >
-                <FileText size={18} />
-                Lihat Laporan Sesi
-              </Link>
-            </div>
+                <Link 
+                  href={`/dashboard/sessions/${recentCompleted.id}/report`} 
+                  className="w-full h-12 bg-[#E2F1EC] text-[#37A47C] hover:bg-[#37A47C] hover:text-white rounded-2xl font-bold transition-all flex items-center justify-center gap-2 group-hover:shadow-lg group-hover:shadow-[#37A47C]/20"
+                >
+                  <FileText size={18} />
+                  Lihat Laporan Sesi
+                </Link>
+              </div>
+            ) : null}
 
             {/* Empty State No Active Session */}
             <div className="bg-white rounded-[2rem] p-6 shadow-sm border border-slate-100 flex flex-col items-center justify-center text-center py-10 opacity-60">

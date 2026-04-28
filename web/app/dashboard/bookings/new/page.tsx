@@ -18,16 +18,11 @@ import {
   usePatients,
   useNurses,
   useCreateAppointment,
+  usePricing,
 } from '@/lib/hooks/useApi';
 import { useAuthStore } from '@/lib/auth-context';
 import { appointmentSchema, type AppointmentFormData } from '@/lib/validation';
 import { toast } from 'sonner';
-
-const SERVICE_PRICES: Record<string, number> = {
-  VISIT: 150000,
-  LIVE_OUT: 250000,
-  LIVE_IN: 400000,
-};
 
 export default function NewBookingPage() {
   const router = useRouter();
@@ -35,9 +30,10 @@ export default function NewBookingPage() {
   const [selectedServiceType, setSelectedServiceType] = useState<string>('VISIT');
   const [notes, setNotes] = useState('');
 
-  // Fetch patients and nurses
+  // Fetch patients, nurses, and pricing
   const { data: patientsData, isLoading: patientsLoading } = usePatients(userId || undefined);
   const { data: nursesData, isLoading: nursesLoading } = useNurses();
+  const { data: pricingData } = usePricing();
   const { mutate: createAppointment, isPending } = useCreateAppointment();
 
   const {
@@ -60,7 +56,14 @@ export default function NewBookingPage() {
     setSelectedServiceType(serviceType);
   }, [serviceType]);
 
-  const totalPrice = SERVICE_PRICES[serviceType] || 150000;
+  // Get pricing from API or fallback to defaults
+  const servicePrices = pricingData?.data || {
+    VISIT: 150000,
+    LIVE_OUT: 250000,
+    LIVE_IN: 400000,
+  };
+  
+  const totalPrice = servicePrices[serviceType] || 150000;
 
   const onSubmit = (data: AppointmentFormData) => {
     const dueDate = new Date(`${data.dueDate}T${register('dueDate')}`);

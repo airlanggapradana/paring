@@ -1,19 +1,71 @@
 'use client';
 
 import { useState } from 'react';
-import { Wallet, TrendingUp, Calendar, ArrowUpRight, Download, ChevronRight, CheckCircle2 } from 'lucide-react';
+import { useAppointments, useNurseById } from '@/lib/hooks/useApi';
+import { useAuthStore } from '@/lib/auth-context';
+import { Wallet, TrendingUp, Calendar, ArrowUpRight, Download, ChevronRight, CheckCircle2, AlertCircle } from 'lucide-react';
 import { Button } from '@/components/ui/Button';
+import { Loader } from '@/components/Loader';
 
 export default function NurseEarnings() {
-  const [totalEarnings] = useState('4.250.000');
-  const [pendingPayout] = useState('150.000');
+  const { userId } = useAuthStore();
+  const { data: appointmentsData, isLoading } = useAppointments();
+  const { data: nurseData } = useNurseById(userId || '');
 
-  const transactions = [
-    { id: '1', date: '12 Ags 2026', patient: 'Ibu Kartini', amount: '150.000', status: 'PENDING' },
-    { id: '4', date: '12 Ags 2026', patient: 'Opa Sastro', amount: '200.000', status: 'PENDING' },
-    { id: '2', date: '10 Ags 2026', patient: 'Bapak Bardi', amount: '250.000', status: 'SUCCESS' },
-    { id: '3', date: '08 Ags 2026', patient: 'Ibu Kartini', amount: '150.000', status: 'SUCCESS' }
-  ];
+  const appointments = appointmentsData?.data || [];
+
+  // Get completed appointments
+  const completedAppointments = appointments.filter((apt: any) => 
+    apt.status === 'COMPLETED'
+  );
+
+  // Get confirmed appointments (pending payout)
+  const confirmedAppointments = appointments.filter((apt: any) => 
+    apt.status === 'CONFIRMED' || apt.status === 'IN_PROGRESS'
+  );
+
+  // Calculate total earnings
+  const totalEarnings = completedAppointments.reduce((sum: number, apt: any) => 
+    sum + (apt.totalPrice || 0), 0
+  );
+
+  // Calculate pending payout
+  const pendingPayout = confirmedAppointments.reduce((sum: number, apt: any) => 
+    sum + (apt.totalPrice || 0), 0
+  );
+
+  const formatCurrency = (amount: number) => {
+    return (amount || 0).toLocaleString('id-ID');
+  };
+
+  const formatDate = (date: string) => {
+    return new Date(date).toLocaleDateString('id-ID', {
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric'
+    });
+  };
+
+  if (isLoading) {
+    return <Loader />;
+  }
+
+  // Create transaction list from completed appointments
+  const transactions = completedAppointments.map((apt: any) => ({
+    id: apt.id,
+    date: formatDate(apt.appointmentDate),
+    patient: apt.patientName || 'Pasien',
+    amount: apt.totalPrice || 0,
+    status: 'SUCCESS'
+  })).concat(
+    confirmedAppointments.map((apt: any) => ({
+      id: apt.id,
+      date: formatDate(apt.appointmentDate),
+      patient: apt.patientName || 'Pasien',
+      amount: apt.totalPrice || 0,
+      status: 'PENDING'
+    }))
+  );
 
   return (
     <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full min-h-screen flex flex-col bg-[#FBF9F6]">
@@ -34,17 +86,17 @@ export default function NurseEarnings() {
           <p className="text-emerald-100/80 text-xs font-bold uppercase tracking-[0.2em] mb-2">Total Pendapatan</p>
           <div className="flex items-baseline gap-2 mb-6">
             <span className="text-sm font-bold text-emerald-200">Rp</span>
-            <h2 className="font-serif text-4xl font-bold">{totalEarnings}</h2>
+            <h2 className="font-serif text-4xl font-bold">{formatCurrency(totalEarnings)}</h2>
           </div>
 
           <div className="grid grid-cols-2 gap-4">
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
               <p className="text-[10px] font-bold text-emerald-100/60 uppercase tracking-wider mb-1">Akan Cair</p>
-              <p className="text-lg font-bold">Rp {pendingPayout}</p>
+              <p className="text-lg font-bold">Rp {formatCurrency(pendingPayout)}</p>
             </div>
             <div className="bg-white/10 backdrop-blur-md rounded-2xl p-4 border border-white/10">
               <p className="text-[10px] font-bold text-emerald-100/60 uppercase tracking-wider mb-1">Sesi Selesai</p>
-              <p className="text-lg font-bold">124</p>
+              <p className="text-lg font-bold">{completedAppointments.length}</p>
             </div>
           </div>
         </div>
@@ -53,36 +105,49 @@ export default function NurseEarnings() {
       {/* Transaction History */}
       <div className="flex-1 space-y-4">
         <div className="flex items-center justify-between mb-2 px-1">
-          <h3 className="font-bold text-slate-800 tracking-tight">Riwayat Transaksi</h3>
+          <h3 className="font-bold text-slate-800 tracking-tight">Riwayat Transaksi ({transactions.length})</h3>
           <select className="bg-transparent text-xs font-bold text-[#37A47C] border-none focus:ring-0">
+            <option>Semua</option>
             <option>Bulan Ini</option>
             <option>Juli 2026</option>
           </select>
         </div>
 
-        {transactions.map(tx => (
-          <div key={tx.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center justify-between hover:border-[#37A47C]/30 transition-colors cursor-pointer group">
-            <div className="flex items-center gap-4">
-              <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tx.status === 'SUCCESS' ? 'bg-[#E2F1EC] text-[#37A47C]' : 'bg-amber-50 text-amber-500'}`}>
-                {tx.status === 'SUCCESS' ? <CheckCircle2 size={24} /> : <TrendingUp size={24} />}
+        {transactions.length > 0 ? (
+          transactions.map((tx: any) => (
+            <div key={tx.id} className="bg-white p-5 rounded-[2rem] border border-slate-100 flex items-center justify-between hover:border-[#37A47C]/30 transition-colors cursor-pointer group">
+              <div className="flex items-center gap-4">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${tx.status === 'SUCCESS' ? 'bg-[#E2F1EC] text-[#37A47C]' : 'bg-amber-50 text-amber-500'}`}>
+                  {tx.status === 'SUCCESS' ? <CheckCircle2 size={24} /> : <TrendingUp size={24} />}
+                </div>
+                <div>
+                  <p className="text-sm font-bold text-[#1B4332]">{tx.patient}</p>
+                  <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{tx.date}</p>
+                </div>
               </div>
-              <div>
-                <p className="text-sm font-bold text-[#1B4332]">{tx.patient}</p>
-                <p className="text-[10px] text-slate-400 font-bold uppercase tracking-wider">{tx.date}</p>
+              <div className="text-right">
+                <p className="text-sm font-bold text-slate-800">Rp {formatCurrency(tx.amount)}</p>
+                <p className={`text-[9px] font-black uppercase tracking-widest ${tx.status === 'SUCCESS' ? 'text-[#37A47C]' : 'text-amber-500'}`}>
+                  {tx.status === 'SUCCESS' ? 'Selesai' : 'Pending'}
+                </p>
               </div>
             </div>
-            <div className="text-right">
-              <p className="text-sm font-bold text-slate-800">Rp {tx.amount}</p>
-              <p className={`text-[9px] font-black uppercase tracking-widest ${tx.status === 'SUCCESS' ? 'text-[#37A47C]' : 'text-amber-500'}`}>
-                {tx.status === 'SUCCESS' ? 'Selesai' : 'Pending'}
-              </p>
+          ))
+        ) : (
+          <div className="bg-white rounded-[2rem] p-6 border border-slate-100 flex flex-col items-center justify-center text-center py-16">
+            <div className="w-20 h-20 bg-slate-50 text-slate-300 rounded-full flex items-center justify-center mb-6">
+              <AlertCircle size={40} />
             </div>
+            <h3 className="font-bold text-[#1B4332] text-lg mb-2">Belum ada transaksi</h3>
+            <p className="text-sm text-slate-500 font-light max-w-[240px]">
+              Selesaikan beberapa sesi untuk mulai mendapatkan penghasilan.
+            </p>
           </div>
-        ))}
+        )}
       </div>
 
       <div className="mt-8">
-        <Button className="w-full h-14 justify-center bg-white border-2 border-slate-100 text-slate-600 hover:border-[#37A47C] hover:text-[#37A47C] rounded-2xl transition-all shadow-sm">
+        <Button disabled={totalEarnings === 0} className="w-full h-14 justify-center bg-white border-2 border-slate-100 text-slate-600 hover:border-[#37A47C] hover:text-[#37A47C] rounded-2xl transition-all shadow-sm disabled:opacity-50 disabled:cursor-not-allowed">
           Tarik Dana ke Bank
           <ArrowUpRight size={20} className="ml-2" />
         </Button>

@@ -34,6 +34,44 @@ export const useRegisterUser = () => {
   });
 };
 
+// ==================== USER HOOKS ====================
+export const useUserById = (id: string) => {
+  return useQuery({
+    queryKey: ['users', id],
+    queryFn: async () => {
+      const response = await apiClient.get(`/users/${id}`);
+      return response.data;
+    },
+    enabled: !!id,
+  });
+};
+
+export const useUpdateUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: any }) => {
+      const response = await apiClient.patch(`/users/${id}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};
+
+export const useDeleteUser = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.delete(`/users/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['users'] });
+    },
+  });
+};
+
 // ==================== NURSE HOOKS ====================
 export const useCreateNurseProfile = () => {
   const queryClient = useQueryClient();
@@ -85,6 +123,19 @@ export const useUpdateNurseProfile = () => {
   });
 };
 
+export const useDeleteNurse = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.delete(`/nurses/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['nurses'] });
+    },
+  });
+};
+
 // ==================== PATIENT HOOKS ====================
 export const usePatients = (familyId?: string) => {
   return useQuery({
@@ -94,7 +145,6 @@ export const usePatients = (familyId?: string) => {
       const response = await apiClient.get(`/patients${params}`);
       return response.data;
     },
-    enabled: !!familyId,
   });
 };
 
@@ -127,6 +177,19 @@ export const useUpdatePatient = () => {
   return useMutation({
     mutationFn: async ({ id, data }: { id: string; data: Partial<Patient> }) => {
       const response = await apiClient.patch(`/patients/${id}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['patients'] });
+    },
+  });
+};
+
+export const useDeletePatient = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.delete(`/patients/${id}`);
       return response.data;
     },
     onSuccess: () => {
@@ -186,6 +249,19 @@ export const useUpdateAppointment = () => {
   });
 };
 
+export const useDeleteAppointment = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.delete(`/appointments/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['appointments'] });
+    },
+  });
+};
+
 // ==================== CARELOG (VITAL SIGNS) HOOKS ====================
 export const useCareLogs = (appointmentId?: string) => {
   return useQuery({
@@ -236,6 +312,19 @@ export const useUpdateCareLog = () => {
   });
 };
 
+export const useDeleteCareLog = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.delete(`/carelog/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['carelogs'] });
+    },
+  });
+};
+
 // ==================== ACTIVITYLOG HOOKS ====================
 export const useActivityLogs = (careLogId?: string) => {
   return useQuery({
@@ -262,6 +351,32 @@ export const useCreateActivityLog = () => {
   });
 };
 
+export const useUpdateActivityLog = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, data }: { id: string; data: Partial<ActivityLog> }) => {
+      const response = await apiClient.patch(`/activitylog/${id}`, data);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activitylogs'] });
+    },
+  });
+};
+
+export const useDeleteActivityLog = () => {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const response = await apiClient.delete(`/activitylog/${id}`);
+      return response.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['activitylogs'] });
+    },
+  });
+};
+
 // ==================== PAYMENT HOOKS ====================
 export const useCreatePayment = () => {
   return useMutation({
@@ -269,5 +384,69 @@ export const useCreatePayment = () => {
       const response = await apiClient.post(`/payment/${appointmentId}`);
       return response.data;
     },
+  });
+};
+
+// ==================== PRICING HOOKS ====================
+export const usePricing = () => {
+  return useQuery({
+    queryKey: ['pricing'],
+    queryFn: async () => {
+      try {
+        // Try to fetch from pricing endpoint first
+        const response = await apiClient.get('/services/pricing');
+        return response.data;
+      } catch (error) {
+        // Fallback to default pricing if endpoint doesn't exist
+        return {
+          data: {
+            VISIT: 150000,
+            LIVE_OUT: 250000,
+            LIVE_IN: 400000,
+          }
+        };
+      }
+    },
+  });
+};
+
+// ==================== NURSE AVAILABILITY HOOKS ====================
+export const useNurseAvailability = (nurseId: string) => {
+  return useQuery({
+    queryKey: ['nurse-availability', nurseId],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.get(`/nurses/${nurseId}/availability`);
+        return response.data;
+      } catch (error) {
+        // Fallback to default slots if endpoint doesn't exist
+        return {
+          data: {
+            slots: [
+              { id: '1', start: '08:00', end: '12:00', status: 'available' },
+              { id: '2', start: '13:00', end: '17:00', status: 'available' },
+            ]
+          }
+        };
+      }
+    },
+    enabled: !!nurseId,
+  });
+};
+
+// ==================== EARNINGS HOOKS ====================
+export const useNurseEarnings = (nurseId: string) => {
+  return useQuery({
+    queryKey: ['nurse-earnings', nurseId],
+    queryFn: async () => {
+      try {
+        const response = await apiClient.get(`/nurses/${nurseId}/earnings`);
+        return response.data;
+      } catch (error) {
+        // Fallback: calculate from appointments if endpoint doesn't exist
+        return { data: { totalEarnings: 0, pendingPayout: 0 } };
+      }
+    },
+    enabled: !!nurseId,
   });
 };

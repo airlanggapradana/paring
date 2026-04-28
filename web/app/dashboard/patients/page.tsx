@@ -1,15 +1,68 @@
 'use client';
 
-import { useState } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/Button';
-import { User, Plus, ChevronRight, FileText } from 'lucide-react';
+import { usePatients } from '@/lib/hooks/useApi';
+import { User, Plus, ChevronRight, AlertCircle } from 'lucide-react';
+import { Loader } from '@/components/Loader';
 
 export default function PatientsList() {
-  const [patients, setPatients] = useState([
-    { id: 1, name: 'Ibu Kartini', age: 68, condition: 'Hipertensi', color: 'bg-[#E2F1EC] text-[#37A47C]', label: 'K' },
-    { id: 2, name: 'Bapak Bardi', age: 72, condition: 'Stroke Ringan', color: 'bg-slate-100 text-slate-400', label: 'B' }
-  ]);
+  const { data: patientsData, isLoading, error } = usePatients();
+
+  const patients = patientsData?.data || [];
+
+  // Calculate age from birthDate
+  const getAge = (birthDate: string) => {
+    const birth = new Date(birthDate);
+    const today = new Date();
+    let age = today.getFullYear() - birth.getFullYear();
+    const monthDiff = today.getMonth() - birth.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < birth.getDate())) {
+      age--;
+    }
+    return age;
+  };
+
+  // Get initials from name
+  const getInitials = (name: string) => name?.charAt(0).toUpperCase() || 'P';
+
+  // Get first medical condition
+  const getCondition = (medicalHistory: string[] | string) => {
+    if (Array.isArray(medicalHistory)) {
+      return medicalHistory[0] || 'Perawatan Umum';
+    }
+    return medicalHistory || 'Perawatan Umum';
+  };
+
+  // Assign colors based on index
+  const getColor = (index: number) => {
+    const colors = [
+      'bg-[#E2F1EC] text-[#37A47C]',
+      'bg-blue-100 text-blue-600',
+      'bg-amber-100 text-amber-600',
+      'bg-rose-100 text-rose-600',
+      'bg-slate-100 text-slate-600'
+    ];
+    return colors[index % colors.length];
+  };
+
+  if (isLoading) {
+    return <Loader />;
+  }
+
+  if (error) {
+    return (
+      <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full min-h-screen flex flex-col bg-[#FBF9F6]">
+        <div className="flex items-center justify-center flex-1">
+          <div className="bg-white rounded-2xl p-8 text-center border border-slate-100 max-w-sm">
+            <AlertCircle size={48} className="mx-auto mb-4 text-red-500" />
+            <h2 className="font-bold text-[#1B4332] mb-2">Gagal Memuat Data</h2>
+            <p className="text-slate-500 text-sm">Maaf, kami tidak dapat memuat daftar pasien.</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="px-6 py-8 pb-24 md:pb-8 max-w-3xl mx-auto w-full min-h-screen flex flex-col bg-[#FBF9F6]">
@@ -18,32 +71,23 @@ export default function PatientsList() {
           <h1 className="font-serif text-2xl font-bold text-[#1B4332]">Profil Pasien</h1>
           <p className="text-sm text-slate-500 font-light mt-1">Kelola data kesehatan lansia Anda</p>
         </div>
-        <button 
-          onClick={() => setPatients(patients.length ? [] : [
-            { id: 1, name: 'Ibu Kartini', age: 68, condition: 'Hipertensi', color: 'bg-[#E2F1EC] text-[#37A47C]', label: 'K' },
-            { id: 2, name: 'Bapak Bardi', age: 72, condition: 'Stroke Ringan', color: 'bg-slate-100 text-slate-400', label: 'B' }
-          ])} 
-          className="text-[10px] bg-slate-200 text-slate-500 px-2 py-1 rounded shadow-sm font-bold uppercase tracking-widest"
-        >
-          Toggle Empty
-        </button>
       </header>
 
       {/* Patient List */}
       <div className="space-y-4 flex-1">
         {patients.length > 0 ? (
-          patients.map(p => (
-            <Link key={p.id} href={`/dashboard/patients/${p.id}`} className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between group hover:border-[#37A47C]/30 hover:shadow-md transition-all">
+          patients.map((patient: any, index: number) => (
+            <Link key={patient.id} href={`/dashboard/patients/${patient.id}`} className="bg-white p-5 rounded-[2rem] shadow-sm border border-slate-100 flex items-center justify-between group hover:border-[#37A47C]/30 hover:shadow-md transition-all">
               <div className="flex items-center gap-4">
-                <div className={`w-14 h-14 ${p.color} rounded-2xl flex items-center justify-center shrink-0 font-serif font-bold text-xl relative overflow-hidden`}>
+                <div className={`w-14 h-14 ${getColor(index)} rounded-2xl flex items-center justify-center shrink-0 font-serif font-bold text-xl relative overflow-hidden`}>
                    <span className="absolute inset-0 bg-gradient-to-tr from-black/5 to-transparent"></span>
-                   {p.label}
+                   {getInitials(patient.name)}
                 </div>
                 <div>
-                  <h3 className="font-bold text-[#1B4332] text-lg leading-tight mb-1">{p.name}</h3>
+                  <h3 className="font-bold text-[#1B4332] text-lg leading-tight mb-1">{patient.name}</h3>
                   <div className="flex flex-wrap items-center gap-2 text-xs text-slate-500 font-medium">
-                    <span className="px-2 py-0.5 bg-slate-100 rounded-md">{p.age} Thn</span>
-                    <span className="px-2 py-0.5 bg-red-50 text-red-500 rounded-md">{p.condition}</span>
+                    <span className="px-2 py-0.5 bg-slate-100 rounded-md">{getAge(patient.dateOfBirth)} Thn</span>
+                    <span className="px-2 py-0.5 bg-red-50 text-red-500 rounded-md">{getCondition(patient.medicalHistory)}</span>
                   </div>
                 </div>
               </div>

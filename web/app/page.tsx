@@ -46,8 +46,9 @@ export default function LandingPage() {
     e.preventDefault();
     if (!bookingForm.name || !bookingForm.phone) return;
 
+    const whatsappNumber = process.env.NEXT_PUBLIC_WHATSAPP_ADMIN || '6281234567890';
     const message = `Halo Admin PARING,\nSaya ingin tanya terkait layanan homecare:\n\nNama Pemesan: ${bookingForm.name}\nNomor HP: ${bookingForm.phone}\nNama Lansia: ${bookingForm.patient || '-'}\nLayanan Diminati: ${bookingForm.service || '-'}\n\nMohon informasi selanjutnya. Terima kasih.`;
-    const whatsappUrl = `https://wa.me/6281234567890?text=${encodeURIComponent(message)}`;
+    const whatsappUrl = `https://wa.me/${whatsappNumber}?text=${encodeURIComponent(message)}`;
 
     window.open(whatsappUrl, '_blank');
     setIsBookingModalOpen(false);

@@ -34,7 +34,8 @@ export default function AiChatPage() {
     setMessages(prev => [...prev, newMsg]);
     setMsg('');
     
-    // Mock response
+    // Demo responses - AI integration with real backend is planned for v2
+    // In production, this would call: POST /api/ai/chat with user message
     setIsTyping(true);
     setTimeout(() => {
       setIsTyping(false);

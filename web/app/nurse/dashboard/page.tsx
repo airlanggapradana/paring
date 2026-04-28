@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Bell, Calendar, Clock, ArrowRight, Activity, CheckCircle2, TrendingUp, Wallet, Loader } from 'lucide-react';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
-import { useAppointments, useNurseById } from '@/lib/hooks/useApi';
+import { useAppointments, useNurseById, useNurseEarnings } from '@/lib/hooks/useApi';
 import { useAuthStore } from '@/lib/auth-context';
 import { toast } from 'sonner';
 
@@ -12,6 +12,7 @@ export default function NurseDashboard() {
   const { userId } = useAuthStore();
   const { data: appointmentsData, isLoading: appointmentsLoading } = useAppointments();
   const { data: nurseData, isLoading: nurseLoading } = useNurseById(userId || '');
+  const { data: earningsData } = useNurseEarnings(userId || '');
 
   const nurseProfile = nurseData?.data;
   const appointments = appointmentsData?.data || [];
@@ -21,9 +22,19 @@ export default function NurseDashboard() {
     .filter((apt: any) => apt.status === 'CONFIRMED' || apt.status === 'IN_PROGRESS')
     .slice(0, 2);
 
+  // Calculate earnings from API or fallback to appointment-based calculation
+  const totalEarnings = earningsData?.data?.totalEarnings || 
+    appointments
+      .filter((apt: any) => apt.status === 'COMPLETED')
+      .reduce((sum: number, apt: any) => sum + (apt.totalPrice || 0), 0) || 0;
+
+  const earningsDisplay = totalEarnings > 0 
+    ? `Rp ${(totalEarnings / 1000000).toFixed(1)}M`
+    : 'Rp 0';
+
   const stats = {
     visits: appointments.length,
-    earnings: `${((appointments.length * 150000) / 1000000).toFixed(1)}M`, // Estimate based on visits
+    earnings: earningsDisplay,
     rating: nurseProfile?.rating || 4.9
   };
 
